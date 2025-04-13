@@ -20,4 +20,6 @@ COPY . /
 # Expose port 5000
 EXPOSE 5000
 
+ENV EASYOCR_MODULE_PATH=/data/easyocr-models
+
 CMD ["python", "main.py"]
