@@ -11,10 +11,23 @@ import ffmpeg
 import easyocr
 import av
 import os
+import sys
 print("[INFO]: Libs loaded.")
 
+# suppresses print
+class suppress_stdout_stderr:
+    def __enter__(self):
+        self._stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._stdout
+
 print ("[EASYOCR]: Loading Loading EN language model...")
-reader = easyocr.Reader(['en'])
+with suppress_stdout_stderr():
+    global reader
+    reader = easyocr.Reader(['en'])
 print ("[EASYOCR]: EN language model loaded.")
 
 print("[INFO]: Loading Environment Variables and Configs...")
