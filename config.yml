@@ -8,10 +8,6 @@ boot: auto
 ports:
   5000/tcp: 5000
 
-init: false
-panel: false
-privileged: false
-
 options:
   rtsp_url: "rtsp://user:password@ip:port/location" 
   debug_mode: false
