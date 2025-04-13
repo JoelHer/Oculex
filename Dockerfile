@@ -9,11 +9,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables
-ENV LANG=C.UTF-8 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
 # Copy requirements file and install dependencies
 COPY requirements.txt /requirements.txt
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
