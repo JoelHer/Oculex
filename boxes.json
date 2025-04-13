@@ -1,0 +1,37 @@
+[
+    {
+        "id": 9,
+        "box_left": 68,
+        "box_top": 246,
+        "box_width": 95,
+        "box_height": 169
+    },
+    {
+        "id": 10,
+        "box_left": 263,
+        "box_top": 235,
+        "box_width": 96,
+        "box_height": 180
+    },
+    {
+        "id": 11,
+        "box_left": 465,
+        "box_top": 234,
+        "box_width": 95,
+        "box_height": 183
+    },
+    {
+        "id": 12,
+        "box_left": 664,
+        "box_top": 235,
+        "box_width": 93,
+        "box_height": 179
+    },
+    {
+        "id": 13,
+        "box_left": 865,
+        "box_top": 234,
+        "box_width": 90,
+        "box_height": 181
+    }
+]

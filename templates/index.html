@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Rectangular Selection</title>
+    <link rel="stylesheet" href="/static/www/css/index.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div class="website">
+        <div class="properties">
+            <h1>
+                EOeS-v.2
+            </h1>
+            <label>Brightness: <input type="range" id="brightness" min="-100" max="100"></label>
+            <label>Contrast: <input type="range" id="contrast" min="0.5" max="3" step="0.1"></label>
+            <label>Crop Top: <input type="number" id="crop_top" min="0"></label>
+            <label>Crop Bottom: <input type="number" id="crop_bottom" min="0"></label>
+            <label>Crop Left: <input type="number" id="crop_left" min="0"></label>
+            <label>Crop Right: <input type="number" id="crop_right" min="0"></label>
+            <div id="coordinates" class="coordinates"></div>
+            <button onclick="addItem()">Add Box</button>
+            <ul id="itemList"></ul>
+
+            <button onclick="saveSettings()">Save</button>
+        </div>
+        <div class="preview">
+            <div class="preview-upper">
+                <div class="preview-upper-navbar">
+                    <h3>Stream Preview</h3>
+                    <button class="preview-upper-navbar-right" onclick="reloadImage()">
+                        <span class="material-icons">refresh</span>
+                    </button>
+                    <button class="preview-upper-navbar-right" onclick="reloadImage()">
+                        <span class="material-icons">refresh</span>
+                    </button>
+                </div>
+                <div class="preview-upper-content">
+                    <div class="preview-container">
+                        <img id="image" src="snapshot" alt="Responsive Image" draggable="false" onload="hideSpinner(); onImageUpdated();">
+                        <div id="selection-box" class="selection-box"></div>
+                        <div id="spinner-overlay" class="spinner-overlay">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+                <p class="loading-text">Loading...</p>
+            </div>
+            <div class="preview-lower">
+                <div class="preview-upper-navbar">
+                    <h3>Processed Image</h3>
+                    <button class="preview-upper-navbar-right" onclick="reloadImage()">
+                        <span class="material-icons">refresh</span>
+                    </button>
+                </div>
+                <div class="preview-upper-content">
+                    <div class="preview-container">
+                        <img id="image-p" src="computed" alt="Responsive Image" draggable="false" onload="hideSpinnerP(); onImageUpdated();">
+                        <div id="spinner-overlay-p" class="spinner-overlay">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/www/js/index.js"></script>
+</body>
+</html>

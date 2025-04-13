@@ -1,0 +1,7 @@
+flask
+opencv-python-headless
+ffmpeg-python
+numpy
+python-dotenv
+easyocr
+av

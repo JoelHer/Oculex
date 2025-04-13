@@ -1,0 +1,13 @@
+{
+    "rotation": 5,
+    "contrast": 3,
+    "brightness": -100,
+    "crop_top": 300,
+    "crop_bottom": 600,
+    "crop_left": 800,
+    "crop_right": 280,
+    "box_top": -80,
+    "box_left": -530,
+    "box_width": 0,
+    "box_height": 0
+}

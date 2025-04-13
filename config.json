@@ -1,0 +1,14 @@
+{
+    "name": "EOeSv3",
+    "version": "0.1",
+    "slug": "ocr_flask_service",
+    "description": "Watermeter reader with http api",
+    "arch": ["amd64", "armv7", "aarch64"],
+    "startup": "application",
+    "boot": "auto",
+    "ports": {
+      "5000/tcp": 5000
+    },
+    "ingress": false
+  }
+  

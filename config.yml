@@ -1,0 +1,28 @@
+name: "EOeS-alpha"
+version: "0.1.0"
+slug: "eoes-alpha"
+description: "Watemeter OCR by Herbst"
+url: "https://github.com/JoelHer/hass-eoes"  # Change to your actual URL or remove if local
+startup: services
+boot: auto
+ports:
+  5000/tcp: 5000
+
+init: false
+panel: false
+privileged: false
+
+options:
+  rtsp_url: "rtsp://user:password@ip:port/location" 
+  debug_mode: false
+
+schema:
+  rtsp_url: "str?"
+  debug_mode: "bool"
+
+arch:
+  - amd64
+  - aarch64
+  - armv7
+
+ingress: false
