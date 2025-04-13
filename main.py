@@ -45,8 +45,8 @@ if ("DISABLE_RTSP" in _env):
     if (DISABLE_RTSP):
         print("[INFO]: RTSP is disabled.")
 
-SETTINGS_FILE = "settings.json"
-BOXES_FILE = "boxes.json"
+SETTINGS_FILE = "/data/settings.json"
+BOXES_FILE = "/data/boxes.json"
 
 # Standardwerte für die Einstellungen
 default_settings = {
