@@ -1,5 +1,5 @@
 name: "EOeS-alpha"
-version: "0.1.3"
+version: "0.1.4"
 slug: "eoes-alpha"
 description: "Watemeter OCR by Herbst"
 url: "https://github.com/JoelHer/hass-eoes"  # Change to your actual URL or remove if local
@@ -26,4 +26,4 @@ arch:
 ingress: false
 
 panel_admin: true
-url: "/"
+webui: http://[HOST]:[PORT:5000]/
