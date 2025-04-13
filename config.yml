@@ -8,8 +8,6 @@ boot: auto
 ports:
   5000/tcp: 5000
 
-image: "joelherbst/eoes:latest"
-
 init: false
 panel: false
 privileged: false
