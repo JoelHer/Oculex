@@ -13,6 +13,10 @@ import av
 import os
 print("[INFO]: Libs loaded.")
 
+print ("[EASYOCR]: Loading Loading EN language model...")
+reader = easyocr.Reader(['en'])
+print ("[EASYOCR]: EN language model loaded.")
+
 print("[INFO]: Loading Environment Variables and Configs...")
 _env = dotenv_values(".env") 
 
@@ -31,6 +35,8 @@ RTSP_URL = config.get('rtsp_url', "rtsp://user:password@ip:port/location" )
 DEBUG_MODE = config.get('debug_mode', False)
 
 print(f"[INFO]: RTSP URL: {RTSP_URL}, Debug Mode: {DEBUG_MODE}")
+
+
 
 DISABLE_RTSP = False
 
@@ -190,8 +196,6 @@ def readocr():
             result_queue.put({"error": "Failed to decode computed image"})
             return
 
-        # Perform OCR on the image
-        reader = easyocr.Reader(['en'])
         result = reader.readtext(image, allowlist="0123456789")
         if not result:
             result_queue.put({"error": "No text detected"})
