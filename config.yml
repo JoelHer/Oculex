@@ -24,3 +24,6 @@ arch:
   - i386
 
 ingress: false
+
+panel_admin: true
+url: "/"
