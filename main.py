@@ -10,19 +10,30 @@ import queue
 import ffmpeg
 import easyocr
 import av
+import os
 print("[INFO]: Libs loaded.")
 
 print("[INFO]: Loading Environment Variables and Configs...")
 _env = dotenv_values(".env") 
 
-with open('/data/options.json', 'r') as f:
-    config = json.load(f)
+options_file = '/data/options.json'
+if os.path.exists(options_file):
+    with open(options_file, 'r') as f:
+        config = json.load(f)
+    print("HASS configuration loaded successfully.")
+else:
+    print(f"{options_file} not found. Ensure the add-on has been started.")
 
 app = Flask(__name__)
+
 OCR_RESULTS_FILE = "ocr_results.json"
-RTSP_URL = config.get('ocr_language', "rtsp://user:password@ip:port/location" )
-print("[INFO]: RTSP URL: " + RTSP_URL)
+RTSP_URL = config.get('rtsp_url', "rtsp://user:password@ip:port/location" )
+DEBUG_MODE = config.get('debug_mode', False)
+
+print(f"[INFO]: RTSP URL: {RTSP_URL}, Debug Mode: {DEBUG_MODE}")
+
 DISABLE_RTSP = False
+
 if ("DISABLE_RTSP" in _env):
     DISABLE_RTSP=bool(_env["DISABLE_RTSP"])
     if (DISABLE_RTSP):
