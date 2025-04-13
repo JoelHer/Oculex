@@ -146,6 +146,7 @@ function loadSettings() {
     const handle = document.querySelector(".resize-handle");
     const brightnessInput = document.getElementById("brightness");
     const contrastInput = document.getElementById("contrast");
+    const rotationInput = document.getElementById("rotation"); // Add rotation input
     const cropInputs = {
         top: document.getElementById("crop_top"),
         bottom: document.getElementById("crop_bottom"),
@@ -158,6 +159,7 @@ function loadSettings() {
         .then(settings => {
             brightnessInput.value = settings.brightness;
             contrastInput.value = settings.contrast;
+            rotationInput.value = settings.rotation; // Load rotation value
             cropInputs.top.value = settings.crop_top;
             cropInputs.bottom.value = settings.crop_bottom;
             cropInputs.left.value = settings.crop_left;
@@ -190,6 +192,7 @@ function saveSettings() {
     const handle = document.querySelector(".resize-handle");
     const brightnessInput = document.getElementById("brightness");
     const contrastInput = document.getElementById("contrast");
+    const rotationInput = document.getElementById("rotation"); // Add rotation input
     const cropInputs = {
         top: document.getElementById("crop_top"),
         bottom: document.getElementById("crop_bottom"),
@@ -212,10 +215,11 @@ function saveSettings() {
         box_height: Math.round(box_height),
         brightness: parseFloat(brightnessInput.value),
         contrast: parseFloat(contrastInput.value),
+        rotation: parseInt(rotationInput.value), // Save rotation value
         crop_top: Math.round(parseInt(cropInputs.top.value)),
         crop_bottom: Math.round(parseInt(cropInputs.bottom.value)),
         crop_left: Math.round(parseInt(cropInputs.left.value)),
-        crop_right: Math.round(parseInt(cropInputs.right.value))
+        crop_right: Math.round(parseInt(cropInputs.right.value)),
     };
 
     fetch("/set_settings", {

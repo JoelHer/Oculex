@@ -1,5 +1,5 @@
 name: "EOeS-alpha"
-version: "0.1.9"
+version: "0.1.10"
 slug: "eoes-alpha"
 description: "Watemeter OCR by Herbst"
 url: "https://github.com/JoelHer/hass-eoes"  # Change to your actual URL or remove if local

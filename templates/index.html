@@ -67,56 +67,5 @@
         </div>
     </div>
     <script src="/static/www/js/index.js"></script>
-    <script>
-        function saveSettings() {
-            const brightness = document.getElementById('brightness').value;
-            const contrast = document.getElementById('contrast').value;
-            const cropTop = document.getElementById('crop_top').value;
-            const cropBottom = document.getElementById('crop_bottom').value;
-            const cropLeft = document.getElementById('crop_left').value;
-            const cropRight = document.getElementById('crop_right').value;
-            const rotation = document.getElementById('rotation').value;
-
-            const settings = {
-                brightness,
-                contrast,
-                cropTop,
-                cropBottom,
-                cropLeft,
-                cropRight,
-                rotation
-            };
-
-            fetch('/save-settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(settings)
-            }).then(response => {
-                if (response.ok) {
-                    alert('Settings saved successfully!');
-                } else {
-                    alert('Failed to save settings.');
-                }
-            });
-        }
-
-        function loadSettings() {
-            fetch('/load-settings')
-                .then(response => response.json())
-                .then(settings => {
-                    document.getElementById('brightness').value = settings.brightness;
-                    document.getElementById('contrast').value = settings.contrast;
-                    document.getElementById('crop_top').value = settings.cropTop;
-                    document.getElementById('crop_bottom').value = settings.cropBottom;
-                    document.getElementById('crop_left').value = settings.cropLeft;
-                    document.getElementById('crop_right').value = settings.cropRight;
-                    document.getElementById('rotation').value = settings.rotation;
-                });
-        }
-
-        document.addEventListener('DOMContentLoaded', loadSettings);
-    </script>
 </body>
 </html>
