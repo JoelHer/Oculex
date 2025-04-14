@@ -353,6 +353,38 @@ def set_boxes():
 def get_boxes():
     return jsonify(boxes)
 
+# Load OCR interval from configuration
+OCR_INTERVAL = config.get('ocr_interval', 60)  # Default to 60 seconds if not set
+
+# Function to periodically trigger OCR reading
+def periodic_ocr_task():
+    while True:
+        print("[INFO]: Triggering periodic OCR reading...")
+        try:
+            response = app.test_client().get('/readocr')
+            if response.status_code == 200:
+                print("[INFO]: OCR reading successful:", response.json)
+            else:
+                print("[ERROR]: OCR reading failed:", response.json)
+        except Exception as e:
+            print("[ERROR]: Exception during periodic OCR reading:", e)
+        time.sleep(OCR_INTERVAL)
+
+# Endpoint to update OCR interval dynamically
+@app.route('/set_ocr_interval', methods=['POST'])
+def set_ocr_interval():
+    global OCR_INTERVAL
+    data = request.json
+    if 'ocr_interval' in data and isinstance(data['ocr_interval'], int) and data['ocr_interval'] > 0:
+        OCR_INTERVAL = data['ocr_interval']
+        print(f"[INFO]: OCR interval updated to {OCR_INTERVAL} seconds.")
+        return jsonify({"message": "OCR interval updated", "ocr_interval": OCR_INTERVAL})
+    return jsonify({"error": "Invalid OCR interval"}), 400
+
+# Start the periodic OCR task in a separate thread
+ocr_thread = threading.Thread(target=periodic_ocr_task, daemon=True)
+ocr_thread.start()
+
 @app.route('/')
 def index():
     return render_template('index.html')
