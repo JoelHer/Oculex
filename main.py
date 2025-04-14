@@ -12,6 +12,7 @@ import easyocr
 import av
 import os
 import sys
+import datetime
 print("[INFO]: Libs loaded.")
 
 # suppresses print
@@ -356,8 +357,12 @@ def get_boxes():
 # Load OCR interval from configuration
 OCR_INTERVAL = config.get('ocr_interval', 60)  # Default to 60 seconds if not set
 
+# Variable to track the last OCR execution time
+last_ocr_execution = time.time()
+
 # Function to periodically trigger OCR reading
 def periodic_ocr_task():
+    global last_ocr_execution
     while True:
         print("[INFO]: Triggering periodic OCR reading...")
         try:
@@ -368,7 +373,19 @@ def periodic_ocr_task():
                 print("[ERROR]: OCR reading failed:", response.json)
         except Exception as e:
             print("[ERROR]: Exception during periodic OCR reading:", e)
+        last_ocr_execution = time.time()
         time.sleep(OCR_INTERVAL)
+
+# Route to check the time remaining for the next OCR interval
+@app.route('/get_next_ocr_interval')
+def get_next_ocr_interval():
+    global last_ocr_execution
+    elapsed_time = time.time() - last_ocr_execution
+    remaining_time = max(OCR_INTERVAL - elapsed_time, 0)
+    return jsonify({
+        "next_ocr_in_seconds": remaining_time,
+        "last_execution_time": datetime.datetime.utcfromtimestamp(last_ocr_execution).strftime('%Y-%m-%d %H:%M:%S UTC')
+    })
 
 # Endpoint to update OCR interval dynamically
 @app.route('/set_ocr_interval', methods=['POST'])
