@@ -267,7 +267,19 @@ def readocr():
         "timezone": "UTC+0"
     })
 
+@app.route('/cachedocr')
+def cachedocr():
+    # Load the last OCR results
+    ocr_results = load_ocr_results()
+    if ocr_results["number"] is None:
+        return jsonify({"error": "No OCR results available"}), 404
 
+    return jsonify({
+        "number": ocr_results["number"],
+        "certainty": ocr_results["certainty"],
+        "timestamp": ocr_results["timestamp"],
+        "timezone": "UTC+0"
+    })
 
 @app.route('/snapshot')
 def snapshot():
