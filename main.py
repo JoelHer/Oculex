@@ -43,7 +43,7 @@ else:
 
 app = Flask(__name__)
 
-OCR_RESULTS_FILE = "ocr_results.json"
+OCR_RESULTS_FILE = "/data/ocr_results.json"
 RTSP_URL = config.get('rtsp_url', "rtsp://user:password@ip:port/location" )
 DEBUG_MODE = config.get('debug_mode', False)
 
