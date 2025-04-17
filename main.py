@@ -6,7 +6,6 @@ from dotenv import dotenv_values
 import time
 import threading
 import queue
-import ffmpeg
 import easyocr
 import av
 import os

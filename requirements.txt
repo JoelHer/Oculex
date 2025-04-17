@@ -7,3 +7,4 @@ av
 fastapi
 uvicorn
 httpx
+python-multipart

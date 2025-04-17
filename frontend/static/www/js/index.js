@@ -228,7 +228,7 @@ function saveSettings() {
         body: JSON.stringify(settings)
     }).then(() => {
         console.log("Settings saved:", settings);
-        document.getElementById("image").src = "/snapshot" + "?" + new Date().getTime();
+        document.getElementById("image").src = "/snapshot/a" + "?" + new Date().getTime();
     });
 
     fetch("/set_boxes", {
@@ -243,7 +243,7 @@ function saveSettings() {
         })))
     }).then(() => {
         console.log("Boxes saved:", boxes);
-        document.getElementById("image").src = "/snapshot" + "?" + new Date().getTime();
+        document.getElementById("image").src = "/snapshot/a" + "?" + new Date().getTime();
     }).finally(() => {
         setTimeout(() => {
             spinnerOverlay.classList.remove("show"); // Hide spinner with fade-out effect
@@ -256,8 +256,8 @@ function reloadImage() {
     const spinnerOverlayp = document.getElementById("spinner-overlay-p");
     spinnerOverlayp.classList.add("show"); // Show spinner with fade-in effect
     spinnerOverlay.classList.add("show"); // Show spinner with fade-in effect
-    document.getElementById("image").src = "/snapshot" + "?" + new Date().getTime();
-    document.getElementById("image-p").src = "/computed" + "?" + new Date().getTime();
+    document.getElementById("image").src = "/snapshot/a" + "?" + new Date().getTime();
+    document.getElementById("image-p").src = "/computed/a" + "?" + new Date().getTime();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
