@@ -1,0 +1,18 @@
+{
+  "name": "Home Assistant Add-on Development",
+  "dockerFile": "../Dockerfile", // Assuming your Dockerfile is in the root of the project
+  "context": "..", // Point to the root directory of your project
+  "mounts": [
+    "source=${localWorkspaceFolder}/dev_data,target=/data,type=bind",
+    "source=${localWorkspaceFolder}/frontend/static,target=/usr/share/hassio/addons/local/your_addon/frontend/static,type=bind",
+    "source=${localWorkspaceFolder}/backend,target=/usr/src/app/backend,type=bind" 
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",  // For Python support
+        "esbenp.prettier-vscode"  // For formatting code
+      ]
+    }
+  }
+}
