@@ -1,5 +1,4 @@
 print("[INFO]: Loading Libs...")
-from flask import Flask, Response, request, jsonify, render_template
 import cv2
 import numpy as np
 import json
@@ -13,6 +12,14 @@ import av
 import os
 import sys
 import datetime
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse, Response
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+import uvicorn
+from fastapi.testclient import TestClient
+
 print("[INFO]: Libs loaded.")
 
 # suppresses print
@@ -42,7 +49,13 @@ if os.path.exists(options_file):
 else:
     print(f"{options_file} not found. Ensure the add-on has been started.")
 
-app = Flask(__name__)
+app = FastAPI()
+
+# Set up Jinja2 templates
+templates = Jinja2Templates(directory="templates")
+
+# Mount static files for serving static content
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 OCR_RESULTS_FILE = "/data/ocr_results.json"
 RTSP_URL = config.get('rtsp_url', "rtsp://user:password@ip:port/location" )
@@ -192,19 +205,22 @@ def get_frame(displayBoxes=True):
         return buffer.tobytes()
     return None
 
-@app.route('/readocr')
+@app.get('/readocr')
 def readocr():
     result_queue = queue.Queue()
 
     def ocr_from_computed(result_queue):
-        # Get the image from the /computed route
-        response = app.test_client().get('/computed')
+        # Create a TestClient instance for testing
+        client = TestClient(app)
+
+        # Replace the Flask test_client usage with FastAPI's TestClient
+        response = client.get('/computed')
         if response.status_code != 200:
             result_queue.put({"error": "Failed to retrieve computed image"})
             return
 
         # Decode the image from the response
-        np_frame = np.frombuffer(response.data, np.uint8)
+        np_frame = np.frombuffer(response.content, np.uint8)  # Use 'content' instead of 'data'
         image = cv2.imdecode(np_frame, cv2.IMREAD_COLOR)
         if image is None:
             result_queue.put({"error": "Failed to decode computed image"})
@@ -225,84 +241,73 @@ def readocr():
     ocr_thread = threading.Thread(target=ocr_from_computed, args=(result_queue,), daemon=True)
     ocr_thread.start()
 
-    # Wait for the thread to finish
     ocr_thread.join()
 
-    # Get the result from the queue
     result = result_queue.get()
 
-    # Handle errors if any
     if "error" in result:
-        return jsonify({"error": result["error"]}), 500
+        return JSONResponse(content={"error": result["error"]}, status_code=500)
 
-    # Load the previous OCR results
     ocr_results = load_ocr_results()
 
-    # Ensure the new value does not decrease
     new_number = int(result["number"])
     previous_number = int(ocr_results["number"]) if ocr_results["number"] is not None else 0
     previous_ocr_certainty = ocr_results["certainty"] if ocr_results["certainty"] is not None else 0
 
     if new_number < previous_number:
-        return jsonify({
+        return JSONResponse(content={
             "error": "OCR value cannot decrease. Expected: >= " + str(previous_number) + " Received: " + str(new_number),
             "number": previous_number,
             "certainty": previous_ocr_certainty,
             "timestamp": ocr_results["timestamp"],
             "timezone": "UTC+0"
 
-        }), 400
-    # Update the OCR results with the new value, certainty, and timestamp
+        }, status_code=400)
     ocr_results["number"] = new_number
     ocr_results["certainty"] = result["certainty"]
     ocr_results["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
 
-    # Save the updated OCR results
     save_ocr_results(ocr_results)
 
-    # Return the result as JSON
-    return jsonify({
+    return JSONResponse(content={
         "number": ocr_results["number"],
         "certainty": ocr_results["certainty"],
         "timestamp": ocr_results["timestamp"],
         "timezone": "UTC+0"
     })
 
-@app.route('/cachedocr')
+@app.get('/cachedocr')
 def cachedocr():
-    # Load the last OCR results
     ocr_results = load_ocr_results()
     if ocr_results["number"] is None:
-        return jsonify({"error": "No OCR results available"}), 404
+        return JSONResponse(content={"error": "No OCR results available"}, status_code=404)
 
-    return jsonify({
+    return JSONResponse(content={
         "number": ocr_results["number"],
         "certainty": ocr_results["certainty"],
         "timestamp": ocr_results["timestamp"],
         "timezone": "UTC+0"
     })
 
-@app.route('/snapshot')
+@app.get('/snapshot')
 def snapshot():
     frame = get_frame()
     if frame is None:
         return "Error: Could not retrieve frame", 500
-    return Response(frame, mimetype='image/jpeg')
+    return Response(frame, media_type='image/jpeg')
 
-@app.route('/computed')
+@app.get('/computed')
 def computed():
     frame = get_frame(displayBoxes=False)
     if frame is None:
         return "Error: Could not retrieve frame", 500
 
-    # Decode the frame into an image
     np_frame = np.frombuffer(frame, np.uint8)
     image = cv2.imdecode(np_frame, cv2.IMREAD_COLOR)
 
     if image is None:
         return "Error: Could not decode frame", 500
 
-    # Extract and stitch the box regions
     snippets = []
     for box in boxes:
         box_top = box["box_top"]
@@ -310,101 +315,97 @@ def computed():
         box_width = box["box_width"]
         box_height = box["box_height"]
 
-        # Ensure the box dimensions are within the image bounds
         snippet = image[box_top:box_top + box_height, box_left:box_left + box_width]
-        if snippet.size > 0:  # Avoid empty regions
+        if snippet.size > 0:
             snippets.append(snippet)
 
     if not snippets:
         return "Error: No valid boxes to process", 400
 
-    # Resize all snippets to the same height
-    target_height = max(snippet.shape[0] for snippet in snippets)  # Use the tallest snippet
+    target_height = max(snippet.shape[0] for snippet in snippets)
     resized_snippets = [cv2.resize(snippet, (snippet.shape[1], target_height)) for snippet in snippets]
 
-    # Concatenate snippets horizontally
     stitched_image = cv2.hconcat(resized_snippets)
 
-    # Encode the stitched image to JPEG
     _, buffer = cv2.imencode(".jpg", stitched_image)
-    return Response(buffer.tobytes(), mimetype='image/jpeg')
+    return Response(buffer.tobytes(), media_type='image/jpeg')
 
-@app.route('/set_settings', methods=['POST'])
-def set_settings():
+@app.post("/set_settings")
+async def set_settings(request: Request):
     global settings
-    data = request.json
-    for key in settings.keys():
+    data = await request.json()
+    for key in settings:
         if key in data:
             settings[key] = data[key]
-    save_settings(settings)  # Speichert die Änderungen sofort
-    return jsonify({"message": "Settings gespeichert", "settings": settings})
+    save_settings(settings)
+    return JSONResponse(content={"message": "Settings gespeichert", "settings": settings})
 
-@app.route('/get_settings')
+@app.get('/get_settings')
 def get_settings():
-    return jsonify(settings)
+    return JSONResponse(content=settings)
 
-@app.route('/set_boxes', methods=['POST'])
-def set_boxes():
+@app.post("/set_boxes")
+async def set_boxes(request: Request):
     global boxes
-    boxes = request.json
+    boxes = await request.json()
     save_boxes(boxes)
-    return jsonify({"message": "Boxes gespeichert", "boxes": boxes})
+    return JSONResponse(content={"message": "Boxes gespeichert", "boxes": boxes})
 
-@app.route('/get_boxes')
+
+@app.get('/get_boxes')
 def get_boxes():
-    return jsonify(boxes)
+    return JSONResponse(content=boxes)
 
-# Load OCR interval from configuration
-OCR_INTERVAL = config.get('ocr_interval', 60)  # Default to 60 seconds if not set
+OCR_INTERVAL = config.get('ocr_interval', 60)
 
-# Variable to track the last OCR execution time
 last_ocr_execution = time.time()
 
-# Function to periodically trigger OCR reading
 def periodic_ocr_task():
     global last_ocr_execution
+    client = TestClient(app)  # Use TestClient for FastAPI
     while True:
         print("[INFO]: Triggering periodic OCR reading...")
         try:
-            response = app.test_client().get('/readocr')
+            response = client.get('/readocr')  # Use the TestClient instance
             if response.status_code == 200:
-                print("[INFO]: OCR reading successful:", response.json)
+                print("[INFO]: OCR reading successful:", response.json())
             else:
-                print("[ERROR]: OCR reading failed:", response.json)
+                print("[ERROR]: OCR reading failed:", response.json())
         except Exception as e:
             print("[ERROR]: Exception during periodic OCR reading:", e)
         last_ocr_execution = time.time()
         time.sleep(OCR_INTERVAL)
 
-# Route to check the time remaining for the next OCR interval
-@app.route('/get_next_ocr_interval')
+@app.get('/get_next_ocr_interval')
 def get_next_ocr_interval():
     global last_ocr_execution
     elapsed_time = time.time() - last_ocr_execution
     remaining_time = max(OCR_INTERVAL - elapsed_time, 0)
-    return jsonify({
+    return JSONResponse(content={
         "next_ocr_in_seconds": remaining_time,
         "last_execution_time": datetime.datetime.utcfromtimestamp(last_ocr_execution).strftime('%Y-%m-%d %H:%M:%S UTC')
     })
 
-# Endpoint to update OCR interval dynamically
-@app.route('/set_ocr_interval', methods=['POST'])
-def set_ocr_interval():
+@app.post("/set_ocr_interval")
+async def set_ocr_interval(request: Request):
     global OCR_INTERVAL
-    data = request.json
-    if 'ocr_interval' in data and isinstance(data['ocr_interval'], int) and data['ocr_interval'] > 0:
-        OCR_INTERVAL = data['ocr_interval']
+    data = await request.json()
+    if (
+        "ocr_interval" in data
+        and isinstance(data["ocr_interval"], int)
+        and data["ocr_interval"] > 0
+    ):
+        OCR_INTERVAL = data["ocr_interval"]
         print(f"[INFO]: OCR interval updated to {OCR_INTERVAL} seconds.")
-        return jsonify({"message": "OCR interval updated", "ocr_interval": OCR_INTERVAL})
-    return jsonify({"error": "Invalid OCR interval"}), 400
+        return JSONResponse(content={"message": "OCR interval updated", "ocr_interval": OCR_INTERVAL})
+    return JSONResponse(content={"error": "Invalid OCR interval"}, status_code=400)
 
-# Start the periodic OCR task in a separate thread
 ocr_thread = threading.Thread(target=periodic_ocr_task, daemon=True)
 ocr_thread.start()
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+@app.get('/', response_class=HTMLResponse)
+def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=DEBUG_MODE)
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=False)
