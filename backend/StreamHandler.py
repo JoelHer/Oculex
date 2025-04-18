@@ -139,3 +139,15 @@ class StreamHandler:
     def process_frame(self):
         # Return image with overlay
         pass
+
+    def get_settings(self):
+        return self.processingSettings
+    
+    def set_settings(self, settings):
+        self.processingSettings = settings
+
+    def get_boxes(self):
+        return self.selectionBoxes
+    
+    def set_boxes(self, boxes):
+        self.selectionBoxes = boxes

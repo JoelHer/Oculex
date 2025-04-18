@@ -154,7 +154,7 @@ function loadSettings() {
         right: document.getElementById("crop_right")
     };
 
-    fetch("/get_settings")
+    fetch("/get_settings/a")
         .then(response => response.json())
         .then(settings => {
             brightnessInput.value = settings.brightness;
@@ -165,7 +165,7 @@ function loadSettings() {
             cropInputs.left.value = settings.crop_left;
             cropInputs.right.value = settings.crop_right;
         });
-    fetch("/get_boxes")
+    fetch("/get_boxes/a")
         .then(response => response.json())
         .then(data => {
             data.forEach(boxData => {
@@ -222,7 +222,7 @@ function saveSettings() {
         crop_right: Math.round(parseInt(cropInputs.right.value)),
     };
 
-    fetch("/set_settings", {
+    fetch("/set_settings/a", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings)
@@ -231,7 +231,7 @@ function saveSettings() {
         document.getElementById("image").src = "/snapshot/a" + "?" + new Date().getTime();
     });
 
-    fetch("/set_boxes", {
+    fetch("/set_boxes/a", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(boxes.map(box => ({

@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from backend.routes import getImage, helloworld, interface, getBoxes, setBoxes, getSettings
+from backend.routes import getImage, helloworld, interface, getBoxes, setBoxes, getSettings, setSettings
 import uuid
 from backend.StreamManager import StreamManager
 import json
@@ -22,6 +22,10 @@ streamManager.add_stream(str(uuid.uuid4()), "rtsp://asdas/stream2", {"configValu
 
 # Configure snapshot routes with the shared StreamManager
 getImage.configure_routes(streamManager)
+getSettings.configure_routes(streamManager)
+setSettings.configure_routes(streamManager)
+setBoxes.configure_routes(streamManager)
+getBoxes.configure_routes(streamManager)
 
 HttpServer.include_router(helloworld.router)
 HttpServer.include_router(interface.router)
@@ -29,6 +33,7 @@ HttpServer.include_router(getBoxes.router)
 HttpServer.include_router(setBoxes.router)
 HttpServer.include_router(getSettings.router)
 HttpServer.include_router(getImage.router)
+HttpServer.include_router(setSettings.router)
 
 static_path = os.path.join(os.path.dirname(__file__), "../frontend/static")
 

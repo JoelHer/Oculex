@@ -4,7 +4,7 @@
       {
         "label": "Run EOeS Server (main.py)",
         "type": "shell",
-        "command": "python main.py",
+        "command": "python server.py",
         "group": "build",
         "problemMatcher": [],
         "presentation": {
