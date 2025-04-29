@@ -47,6 +47,7 @@ app = Flask(__name__)
 OCR_RESULTS_FILE = "/data/ocr_results.json"
 RTSP_URL = config.get('rtsp_url', "rtsp://user:password@ip:port/location" )
 DEBUG_MODE = config.get('debug_mode', False)
+LITERS_PER_HOUR = config.get('liters_per_hour', 10.0)  # Default liters per hour if not set
 
 print(f"[INFO]: RTSP URL: {RTSP_URL}, Debug Mode: {DEBUG_MODE}")
 
@@ -242,6 +243,7 @@ def readocr():
     new_number = int(result["number"])
     previous_number = int(ocr_results["number"]) if ocr_results["number"] is not None else 0
     previous_ocr_certainty = ocr_results["certainty"] if ocr_results["certainty"] is not None else 0
+    previous_ocr_timestamp = ocr_results["timestamp"] if ocr_results["timestamp"] is not None else None
 
     if new_number < previous_number:
         return jsonify({
@@ -251,6 +253,17 @@ def readocr():
             "timestamp": ocr_results["timestamp"],
             "timezone": "UTC+0"
 
+        }), 400
+
+    # check if the results match up with the liters per hour
+    maximum_expected_value = int((LITERS_PER_HOUR / 3600) * OCR_INTERVAL)
+    if new_number > previous_number + maximum_expected_value:
+        return jsonify({
+            "error": "OCR value exceeds expected range. Expected: <= " + str(previous_number + maximum_expected_value) + " Received: " + str(new_number),
+            "number": previous_number,
+            "certainty": previous_ocr_certainty,
+            "timestamp": ocr_results["timestamp"],
+            "timezone": "UTC+0"
         }), 400
     # Update the OCR results with the new value, certainty, and timestamp
     ocr_results["number"] = new_number
@@ -401,6 +414,81 @@ def set_ocr_interval():
 # Start the periodic OCR task in a separate thread
 ocr_thread = threading.Thread(target=periodic_ocr_task, daemon=True)
 ocr_thread.start()
+
+@app.route('/calibrate', methods=['GET', 'POST'])
+def calibrate():
+    if request.method == 'POST':
+        data = request.json
+        if not data or 'number' not in data or 'timestamp' not in data:
+            return jsonify({"error": "Invalid input. 'number' and 'timestamp' are required."}), 400
+
+        try:
+            # Validate and parse the timestamp
+            timestamp = datetime.datetime.strptime(data['timestamp'], "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return jsonify({"error": "Invalid timestamp format. Use 'YYYY-MM-DD HH:MM:SS'."}), 400
+
+        # Load the current OCR results
+        ocr_results = load_ocr_results()
+
+        # Update the OCR results
+        ocr_results["number"] = int(data["number"])
+        ocr_results["certainty"] = 1.0  # Set certainty to maximum for calibration
+        ocr_results["timestamp"] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+        # Save the updated OCR results
+        save_ocr_results(ocr_results)
+
+        return jsonify({"message": "OCR value calibrated successfully", "ocr_results": ocr_results})
+
+    # Get the current server time
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Render a simple HTML form for GET requests
+    return f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Calibrate OCR</title>
+    </head>
+    <body>
+        <h1>Calibrate OCR</h1>
+        <form id="calibrateForm">
+            <label for="number">OCR Number:</label><br>
+            <input type="number" id="number" name="number" required><br><br>
+            <label for="timestamp">Timestamp (YYYY-MM-DD HH:MM:SS):</label><br>
+            <input type="text" id="timestamp" name="timestamp" required placeholder="e.g., {current_time}"><br><br>
+            <button type="button" onclick="submitForm()">Submit</button>
+        </form>
+        <p id="response"></p>
+        <script>
+            async function submitForm() {{
+                const number = document.getElementById('number').value;
+                const timestamp = document.getElementById('timestamp').value;
+                const responseElement = document.getElementById('response');
+
+                try {{
+                    const response = await fetch('/calibrate', {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'application/json' }},
+                        body: JSON.stringify({{ number, timestamp }})
+                    }});
+
+                    const result = await response.json();
+                    if (response.ok) {{
+                        responseElement.textContent = 'Success: ' + JSON.stringify(result);
+                    }} else {{
+                        responseElement.textContent = 'Error: ' + JSON.stringify(result);
+                    }}
+                }} catch (error) {{
+                    responseElement.textContent = 'Error: ' + error.message;
+                }}
+            }}
+        </script>
+    </body>
+    </html>
+    '''
+
 
 @app.route('/')
 def index():
