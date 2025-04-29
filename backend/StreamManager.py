@@ -5,37 +5,64 @@
 
 
 from backend.StreamHandler import StreamHandler
-from backend.database.models import Stream, StreamSettings, SelectionBox
+import json
 
 class StreamManager:
-    def __init__(self, session):
+    """
+    StreamManager
+    Keeps track of all the active StreamHandler instances.
+    """
+    def __init__(self, verbose_logging=False):
         self.streams = {}
-        print("[StreamManager] Loading streams from database...")
-        self.load_streams_from_db(session)
-
+        self.VERBOSE_LOGGING = verbose_logging
 
     def add_stream(self, stream_id, rtsp_url, config, processingSettings, selectionBoxes):
         self.streams[stream_id] = StreamHandler(rtsp_url, config, processingSettings, selectionBoxes)
-        print(f"[StreamManager] Added stream with ID: {stream_id}")
+        if self.VERBOSE_LOGGING:
+            print(f"[StreamManager] Added stream with ID: {stream_id}")
 
     def get_stream(self, stream_id):
+        """Return the stream handler for the given stream ID."""
         return self.streams.get(stream_id)
 
     def list_streams(self):
         return list(self.streams.keys())
 
-    def load_streams_from_db(self, dbSession):
-        db = dbSession()
-        streams = db.query(Stream).all()
-        for stream in streams:
-            stream_id = str(stream.id)
-            rtsp_url = stream.rtsp_url
-            print(f"[StreamManager] Loading stream {rtsp_url} from database...")
-            config = {}
-            processingSettings = db.query(StreamSettings).filter(StreamSettings.stream_id == stream.id).first()
-            selectionBoxes = db.query(SelectionBox).filter(SelectionBox.stream_id == stream.id).all()
-            selectionBoxes = [box.to_dict() for box in selectionBoxes]
-            
-            self.add_stream(stream_id, rtsp_url, config, processingSettings, selectionBoxes)
+    def store_streams(self, filename):
+        """Store the current streams to the specified file."""
+        data = {}
+        for stream_id, handler in self.streams.items():
+            data[stream_id] = {
+                "rtsp_url": handler.rtsp_url,
+                "config": handler.config,
+                "processingSettings": handler.processingSettings,
+                "selectionBoxes": handler.selectionBoxes
+            }
+        with open(filename, "w") as f:
+            json.dump(data, f, indent=4)
+        if self.VERBOSE_LOGGING:
+            print(f"[StreamManager] Stored {len(self.streams)} streams to {filename}")
 
-        db.close()
+    def load_streams(self, filename):
+        """Load streams from the specified file."""
+        try:
+            with open(filename, "r") as f:
+                data = json.load(f)
+            for stream_id, info in data.items():
+                rtsp_url = info.get("rtsp_url", "")
+                config = info.get("config", {})
+                processingSettings = info.get("processingSettings", {})
+                selectionBoxes = info.get("selectionBoxes", {})  # maybe old saves don't have this
+
+                self.add_stream(
+                    stream_id,
+                    rtsp_url,
+                    config,
+                    processingSettings,
+                    selectionBoxes
+                )
+            if self.VERBOSE_LOGGING:
+                print(f"[StreamManager] Loaded {len(data)} streams from {filename}")
+        except FileNotFoundError:
+            if self.VERBOSE_LOGGING:
+                print(f"[StreamManager] No previous streams file found ({filename}). Starting fresh.")

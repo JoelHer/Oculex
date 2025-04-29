@@ -20,28 +20,55 @@ class StreamHandler:
 
     async def grab_frame_raw(self):
         print(f"[StreamHandler] Trying to open the RTSP stream at {self.rtsp_url}")
-        try:
-            # Use av.open with RTSP options
-            container = av.open(self.rtsp_url, options={"rtsp_transport": "tcp"})
-            frame = None
-            for packet in container.demux(video=0):
-                for frame in packet.decode():
-                    img = frame.to_image()  # Convert frame to PIL Image
-                    frame = np.array(img)   # Convert to NumPy array
-                    break  # Just grab one frame
-                if frame is not None:
-                    break
+        
+        if self.rtsp_url.startswith("file://"):
+            file_path = self.rtsp_url[7:]
+            print(f"[StreamHandler] Opening file {file_path} instead of RTSP stream")
             
-            if frame is not None:
-                _, buffer = cv2.imencode(".jpg", frame)
-                return buffer.tobytes()
-            else:
-                print(f"[StreamHandler] No frames found in the RTSP stream at {self.rtsp_url}")
+            try:
+                container = av.open(file_path)
+                frame = None
+                for packet in container.demux(video=0):
+                    for frame in packet.decode():
+                        img = frame.to_image()  # Convert frame to PIL Image
+                        frame = np.array(img)   # Convert to NumPy array
+                        break  # Grab only one frame
+                    if frame is not None:
+                        break
+
+                if frame is not None:
+                    _, buffer = cv2.imencode(".jpg", frame)
+                    return buffer.tobytes()
+                else:
+                    print(f"[StreamHandler] No frames found in the file {file_path}")
+                    return None
+
+            except Exception as e:
+                print(f"[StreamHandler] Error opening file {file_path}: {e}")
                 return None
 
-        except Exception as e:
-            print(f"[StreamHandler] Error opening RTSP stream with url {self.rtsp_url}: {e}")
-            return None
+        else:
+            try:
+                container = av.open(self.rtsp_url, options={"rtsp_transport": "tcp"})
+                frame = None
+                for packet in container.demux(video=0):
+                    for frame in packet.decode():
+                        img = frame.to_image()  # Convert frame to PIL Image
+                        frame = np.array(img)   # Convert to NumPy array
+                        break  # Just grab one frame
+                    if frame is not None:
+                        break
+
+                if frame is not None:
+                    _, buffer = cv2.imencode(".jpg", frame)
+                    return buffer.tobytes()
+                else:
+                    print(f"[StreamHandler] No frames found in the RTSP stream at {self.rtsp_url}")
+                    return None
+
+            except Exception as e:
+                print(f"[StreamHandler] Error opening RTSP stream with url {self.rtsp_url}: {e}")
+                return None
 
     async def grab_frame(self, displayBoxes=True):
         print(f"[StreamHandler] Trying to open the RTSP stream at {self.rtsp_url}")

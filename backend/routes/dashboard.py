@@ -13,6 +13,9 @@ def configure_routes(stream_manager: StreamManager):
 
 @router.get("/", response_class=HTMLResponse)
 async def dashboard():
+    """
+    Serve the dashboard HTML page.
+    """
     html_file_path = Path(__file__).parent / "../../frontend/static/www/html/index.html"
     html_file_path = html_file_path.resolve()  # Resolve to an absolute path
     
