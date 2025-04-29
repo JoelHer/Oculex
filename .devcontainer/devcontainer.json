@@ -11,7 +11,8 @@
     "vscode": {
       "extensions": [
         "ms-python.python",  // For Python support
-        "esbenp.prettier-vscode"  // For formatting code
+        "esbenp.prettier-vscode",  // For formatting code
+        "vue.volar" //vue.js support
       ]
     }
   }

@@ -1,17 +1,30 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-      {
-        "label": "Run EOeS Server (main.py)",
-        "type": "shell",
-        "command": "python server.py",
-        "group": "build",
-        "problemMatcher": [],
-        "presentation": {
-          "reveal": "always",
-          "panel": "dedicated"
-        }
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Vue.js Frontend and Run Server",
+      "type": "shell",
+      "command": "python server.py",  // Build the Vue app and then start the Python server
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "dependsOn": [
+        "Run Vue Build"
+      ]
+    },
+    {
+      "label": "Run Vue Build",
+      "type": "shell",
+      "command": "cd frontend-vue && npm run build",  // Builds the Vue app
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
       }
-    ]
-  }
-  
+    }
+  ]
+}
