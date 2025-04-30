@@ -8,9 +8,49 @@
 import cv2
 import av
 import numpy as np
+import os
+
+def create_thumbnail(frame_bytes, target_width=320, target_height=240, noDecode=False):
+    if frame_bytes is None:
+        return None
+    
+    nparr = np.frombuffer(frame_bytes, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if img is None:
+        print("[StreamHandler] Failed to decode JPEG")
+        return None
+    
+    height, width = img.shape[:2]
+    target_width = 320
+    target_height = 240
+
+    aspect_ratio = width / height
+
+    if (target_width / target_height) > aspect_ratio:
+        new_height = target_height
+        new_width = int(aspect_ratio * target_height)
+    else:
+        new_width = target_width
+        new_height = int(target_width / aspect_ratio)
+    
+    resized_img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+    if noDecode:
+        return resized_img
+
+    success, buffer = cv2.imencode(".jpg", resized_img)
+    if not success:
+        print("[StreamHandler] Failed to encode thumbnail JPEG")
+        return None
+    
+    return buffer.tobytes()
+
+CACHE_DIR = "/data/cache"
 
 class StreamHandler:
-    def __init__(self, rtsp_url, config, processingSettings, selectionBoxes):
+    def __init__(self, stream_id, rtsp_url, config, processingSettings, selectionBoxes):
+        self.id = stream_id
         self.rtsp_url = rtsp_url
         self.config = config
         self.processingSettings = processingSettings
@@ -31,7 +71,7 @@ class StreamHandler:
                 for packet in container.demux(video=0):
                     for frame in packet.decode():
                         img = frame.to_image()  # Convert frame to PIL Image
-                        frame = np.array(img)   # Convert to NumPy array
+                        frame = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)  # Convert to NumPy array (BGR)
                         break  # Grab only one frame
                     if frame is not None:
                         break
@@ -162,6 +202,26 @@ class StreamHandler:
 
         _, buffer = cv2.imencode(".jpg", stitched_image)
         return buffer.tobytes()
+
+    async def grab_thumbnail(self):
+        os.makedirs(CACHE_DIR+"/thumbnails/", exist_ok=True)
+        # check if f"/data/cache/thumbnails/{self.id}.jpg" exists, else create the thumbnail and save it
+        if os.path.exists(f"{CACHE_DIR}/thumbnails/{self.id}.jpg"):
+            print(f"[StreamHandler] Thumbnail \"{self.id}.jpg\" already exists, loading from cache instead")
+            thmbnail = cv2.imread(f"{CACHE_DIR}/thumbnails/{self.id}.jpg")
+            _, buffer = cv2.imencode(".jpg", thmbnail)
+            return buffer.tobytes()
+        frame_bytes = await self.grab_frame_raw()
+        if frame_bytes is None:
+            return None
+        resized_image = create_thumbnail(frame_bytes, noDecode=True)
+        if resized_image is None:
+            return None
+        # create /data/cache/thumbnails/ directory if it doesn't exist
+        cv2.imwrite(f"{CACHE_DIR}/thumbnails/{self.id}.jpg", resized_image)
+        success, buffer = cv2.imencode(".jpg", resized_image)
+        return buffer.tobytes()
+        
 
     def process_frame(self):
         # Return image with overlay

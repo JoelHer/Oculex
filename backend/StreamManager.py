@@ -17,7 +17,7 @@ class StreamManager:
         self.VERBOSE_LOGGING = verbose_logging
 
     def add_stream(self, stream_id, rtsp_url, config, processingSettings, selectionBoxes):
-        self.streams[stream_id] = StreamHandler(rtsp_url, config, processingSettings, selectionBoxes)
+        self.streams[stream_id] = StreamHandler(stream_id, rtsp_url, config, processingSettings, selectionBoxes)
         if self.VERBOSE_LOGGING:
             print(f"[StreamManager] Added stream with ID: {stream_id}")
 

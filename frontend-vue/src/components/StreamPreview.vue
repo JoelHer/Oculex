@@ -7,7 +7,7 @@ const props = defineProps({
 
 onMounted(async () => {
     try {
-        const response = await fetch('/snapshotRaw/' + props.streamid)
+        const response = await fetch('/stream/' + props.streamid)
         if (response.ok) {
             const data = await response.json()
             // do something with data
@@ -23,7 +23,7 @@ onMounted(async () => {
 <template>
   <div id="streamPreview">
     <img
-      :src="'/snapshotRaw/' + streamid"
+      :src="'/thumbnail/' + streamid"
       class="previewImage"
     />
     <div class="previewFooter">

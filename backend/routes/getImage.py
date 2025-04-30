@@ -54,3 +54,18 @@ async def get_computed_snapshot(stream_id: str):
         return StreamingResponse(io.BytesIO(frame), media_type="image/jpeg")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/thumbnail/{stream_id}")
+async def get_thumbnail(stream_id: str):
+    try:
+        stream = streamManager.get_stream(stream_id)
+        if not stream:
+            raise HTTPException(status_code=404, detail=f"Stream with ID {stream_id} not found")
+        
+        frame = await stream.grab_thumbnail()
+        if frame is None:
+            raise HTTPException(status_code=500, detail="Failed to grab thumbnail from stream")
+        
+        return StreamingResponse(io.BytesIO(frame), media_type="image/jpeg")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
