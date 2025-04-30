@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted,onBeforeUnmount } from 'vue'
 import StreamPreview from './StreamPreview.vue'
+import StreamPreviewAdd from './StreamPreviewAdd.vue'
 
 const streams = ref([])
 
@@ -27,7 +28,7 @@ onMounted(async () => {
         :key="stream"
         :streamid="stream"
     />
-
+    <StreamPreviewAdd />
   </div>
 </template>
 
