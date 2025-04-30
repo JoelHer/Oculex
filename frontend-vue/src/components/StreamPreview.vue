@@ -1,17 +1,37 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+
+const statusColor = computed(() => {
+  switch (status.value) {
+    case 'OK':
+      return 'status-ok'
+    case 'UNKNOWN':
+      return 'status-unknown'
+    case 'TIMEOUT':
+    case 'NO_STREAM':
+      return 'status-timeout'
+    case 'NO_CONNECTION':
+    case 'ERROR':
+      return 'status-no_connection'
+    default:
+      return 'status-unknown'
+  }
+})
 
 const props = defineProps({
   streamid: String,
 })
 
-const loading = ref(true) // 🔥 loading starts as true
+const loading = ref(true) 
+
+const status = ref('UNKNOWN') // default
 
 onMounted(async () => {
   try {
-    const response = await fetch('/stream/' + props.streamid)
+    const response = await fetch('/streams/' + props.streamid)
     if (response.ok) {
       const data = await response.json()
+      status.value = data.status || 'UNKNOWN' // fallback to UNKNOWN if not set
       // do something with data
     } else {
       console.error('Failed to fetch streams:', response.status)
@@ -40,9 +60,9 @@ function handleError() {
       @load="handleLoad"
       @error="handleError"
     />
-    <div v-if="loading" class="spinner"></div> <!-- 🔥 spinner shown while loading -->
+    <div v-if="loading" class="spinner"></div> 
     <div class="previewFooter">
-      <div class="previewStatusIndicator"></div>
+      <div :class="['previewStatusIndicator', statusColor]"></div>
       <p class="previewText">{{ streamid }}</p>
     </div>
   </div>
@@ -102,10 +122,29 @@ function handleError() {
 .previewStatusIndicator {
   width: 8px;
   height: 8px;
-  background-color: #40F284; 
   border-radius: 50%;
   margin-left: 13px;
+  background-color: #4a4d57; /* default */
 }
+
+.status-ok {
+  background-color: #40F284;
+}
+
+.status-unknown {
+  background-color: #4a4d57;
+}
+
+.status-timeout,
+.status-no_stream {
+  background-color: #f2b440;
+}
+
+.status-no_connection,
+.status-error {
+  background-color: #f25540;
+}
+
 
 .previewText {
   font-weight: 700;

@@ -9,6 +9,16 @@ import cv2
 import av
 import numpy as np
 import os
+from enum import Enum
+
+class StreamStatus(str, Enum):
+    """Enum for stream status."""
+    OK = "OK"
+    ERROR = "ERROR"
+    NO_STREAM = "NO_STREAM"
+    NO_CONNECTION = "NO_CONNECTION"
+    TIMEOUT = "TIMEOUT"
+    UNKNOWN = "UNKNOWN"
 
 def create_thumbnail(frame_bytes, target_width=320, target_height=240, noDecode=False):
     if frame_bytes is None:
@@ -56,6 +66,7 @@ class StreamHandler:
         self.processingSettings = processingSettings
         self.selectionBoxes = selectionBoxes
         self.frame = None
+        self.status = StreamStatus.UNKNOWN
         # Init grabbing, OCR, etc.
 
     async def grab_frame_raw(self):
@@ -78,12 +89,15 @@ class StreamHandler:
 
                 if frame is not None:
                     _, buffer = cv2.imencode(".jpg", frame)
+                    self.status = StreamStatus.OK
                     return buffer.tobytes()
                 else:
+                    self.status = StreamStatus.NO_STREAM
                     print(f"[StreamHandler] No frames found in the file {file_path}")
                     return None
 
             except Exception as e:
+                self.status = StreamStatus.ERROR
                 print(f"[StreamHandler] Error opening file {file_path}: {e}")
                 return None
 
@@ -101,12 +115,15 @@ class StreamHandler:
 
                 if frame is not None:
                     _, buffer = cv2.imencode(".jpg", frame)
+                    self.status = StreamStatus.OK
                     return buffer.tobytes()
                 else:
+                    self.status = StreamStatus.NO_STREAM
                     print(f"[StreamHandler] No frames found in the RTSP stream at {self.rtsp_url}")
                     return None
 
             except Exception as e:
+                self.status = StreamStatus.NO_CONNECTION
                 print(f"[StreamHandler] Error opening RTSP stream with url {self.rtsp_url}: {e}")
                 return None
 
@@ -161,24 +178,29 @@ class StreamHandler:
             
             if frame is not None:
                 _, buffer = cv2.imencode(".jpg", frame)
+                self.status = StreamStatus.OK
                 return buffer.tobytes()
             else:
+                self.status = StreamStatus.NO_STREAM
                 print(f"[StreamHandler] No frames found in the RTSP stream at {self.rtsp_url}")
                 return None
 
         except Exception as e:
+            self.status = StreamStatus.NO_CONNECTION
             print(f"[StreamHandler] Error opening RTSP stream with url {self.rtsp_url}: {e}")
             return None
 
     async def grab_computed_freme(self):
         frame = await self.grab_frame(displayBoxes=False)  # Add 'await' here
         if frame is None:
+            self.status = StreamStatus.NO_STREAM
             return "Error: Could not retrieve frame", 500
 
         np_frame = np.frombuffer(frame, np.uint8)
         image = cv2.imdecode(np_frame, cv2.IMREAD_COLOR)
 
         if image is None:
+            self.status = StreamStatus.ERROR
             return "Error: Could not decode frame", 500
 
         snippets = []
@@ -193,6 +215,7 @@ class StreamHandler:
                 snippets.append(snippet)
 
         if not snippets:
+            self.status = StreamStatus.ERROR
             return "Error: No valid boxes to process", 400
 
         target_height = max(snippet.shape[0] for snippet in snippets)
@@ -201,6 +224,7 @@ class StreamHandler:
         stitched_image = cv2.hconcat(resized_snippets)
 
         _, buffer = cv2.imencode(".jpg", stitched_image)
+        self.status = StreamStatus.OK
         return buffer.tobytes()
 
     async def grab_thumbnail(self):
@@ -213,13 +237,20 @@ class StreamHandler:
             return buffer.tobytes()
         frame_bytes = await self.grab_frame_raw()
         if frame_bytes is None:
+            self.status = StreamStatus.NO_STREAM
             return None
         resized_image = create_thumbnail(frame_bytes, noDecode=True)
         if resized_image is None:
+            self.status = StreamStatus.ERROR
             return None
         # create /data/cache/thumbnails/ directory if it doesn't exist
         cv2.imwrite(f"{CACHE_DIR}/thumbnails/{self.id}.jpg", resized_image)
         success, buffer = cv2.imencode(".jpg", resized_image)
+        if not success:
+            print("[StreamHandler] Failed to encode thumbnail JPEG")
+            self.status = StreamStatus.ERROR
+            return None
+        self.status = StreamStatus.OK
         return buffer.tobytes()
         
 
