@@ -27,8 +27,6 @@ async def get_stream(stream_id: str):
     if not stream_handler:
         return JSONResponse(status_code=404, content={"error": "Stream not found"})
     
-    print("status", stream_handler.status)
-
     stream_info = {
         "rtsp_url": stream_handler.rtsp_url,
         "config": stream_handler.config,

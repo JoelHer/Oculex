@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted,onBeforeUnmount } from 'vue'
 import StreamPreview from './StreamPreview.vue'
 
 const streams = ref([])
@@ -9,7 +9,7 @@ onMounted(async () => {
     const response = await fetch('/streams')
     if (response.ok) {
       const data = await response.json()
-      streams.value = data.streams  // <-- Pick only the array!
+      streams.value = data.streams 
     } else {
       console.error('Failed to fetch streams:', response.status)
     }
@@ -17,6 +17,7 @@ onMounted(async () => {
     console.error('Error fetching streams:', error)
   }
 })
+
 </script>
 
 <template>

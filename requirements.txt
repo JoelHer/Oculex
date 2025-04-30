@@ -8,4 +8,4 @@ fastapi
 uvicorn
 httpx
 python-multipart
-sqlalchemy
+websockets

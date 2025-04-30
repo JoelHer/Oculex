@@ -47,7 +47,7 @@ async def get_computed_snapshot(stream_id: str):
         if not stream:
             raise HTTPException(status_code=404, detail=f"Stream with ID {stream_id} not found")
         
-        frame = await stream.grab_computed_freme()
+        frame = await stream.grab_computed_frame()
         if frame is None:
             raise HTTPException(status_code=500, detail="Failed to grab computed frame from stream")
         

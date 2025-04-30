@@ -1,47 +1,42 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-
-const statusColor = computed(() => {
-  switch (status.value) {
-    case 'OK':
-      return 'status-ok'
-    case 'UNKNOWN':
-      return 'status-unknown'
-    case 'TIMEOUT':
-    case 'NO_STREAM':
-      return 'status-timeout'
-    case 'NO_CONNECTION':
-    case 'ERROR':
-      return 'status-no_connection'
-    default:
-      return 'status-unknown'
-  }
-})
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useWebSocket } from '../websocket' // shared websocket
 
 const props = defineProps({
   streamid: String,
 })
 
 const loading = ref(true) 
+const status = ref('UNKNOWN')
 
-const status = ref('UNKNOWN') // default
+const socket = useWebSocket() // use the shared socket
 
-onMounted(async () => {
+const statusColor = computed(() => {
+  switch (status.value) {
+    case 'OK': return 'status-ok'
+    case 'UNKNOWN': return 'status-unknown'
+    case 'TIMEOUT':
+    case 'NO_STREAM': return 'status-timeout'
+    case 'NO_CONNECTION':
+    case 'ERROR': return 'status-no_connection'
+    default: return 'status-unknown'
+  }
+})
+
+async function fetchStreamStatus() {
   try {
     const response = await fetch('/streams/' + props.streamid)
     if (response.ok) {
       const data = await response.json()
-      status.value = data.status || 'UNKNOWN' // fallback to UNKNOWN if not set
-      // do something with data
+      status.value = data.status || 'UNKNOWN'
     } else {
       console.error('Failed to fetch streams:', response.status)
     }
   } catch (error) {
     console.error('Error fetching streams:', error)
   }
-})
+}
 
-// handle image load and error
 function handleLoad() {
   loading.value = false
 }
@@ -50,7 +45,32 @@ function handleError() {
   loading.value = false
   console.error('Thumbnail failed to load.')
 }
+
+function handleMessage(event) {
+  const data = JSON.parse(event.data)
+  if (data.type !== 'stream/status_update') return
+  console.log(props.streamid,'- Received message:', data)
+  if (data.streamid == props.streamid) {
+    console.log('Updating status for stream:', props.streamid)
+    status.value = data.status
+  }
+}
+
+onMounted(() => {
+  fetchStreamStatus()
+
+  if (socket.value) {
+    socket.value.addEventListener('message', handleMessage)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (socket.value) {
+    socket.value.removeEventListener('message', handleMessage)
+  }
+})
 </script>
+
 
 <template>
   <div id="streamPreview">
@@ -67,6 +87,7 @@ function handleError() {
     </div>
   </div>
 </template>
+
 
 <style scoped>
 #streamPreview {

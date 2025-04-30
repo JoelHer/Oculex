@@ -12,12 +12,13 @@ class StreamManager:
     StreamManager
     Keeps track of all the active StreamHandler instances.
     """
-    def __init__(self, verbose_logging=False):
+    def __init__(self, ws_manager=None, verbose_logging=False):
         self.streams = {}
+        self.ws_manager = ws_manager
         self.VERBOSE_LOGGING = verbose_logging
 
     def add_stream(self, stream_id, rtsp_url, config, processingSettings, selectionBoxes):
-        self.streams[stream_id] = StreamHandler(stream_id, rtsp_url, config, processingSettings, selectionBoxes)
+        self.streams[stream_id] = StreamHandler(stream_id, rtsp_url, config, processingSettings, selectionBoxes, ws_manager=self.ws_manager)
         if self.VERBOSE_LOGGING:
             print(f"[StreamManager] Added stream with ID: {stream_id}")
 
