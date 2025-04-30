@@ -1,12 +1,17 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useWebSocket } from '../websocket' // shared websocket
+import { Icon } from '@iconify/vue'
 
 const props = defineProps({
   streamid: String,
   preview: {
     type: Boolean,
     default: false
+  },
+  previewStreamSource: {
+    type: String,
+    default: '/data/rtsp.png'
   }
 })
 
@@ -27,6 +32,11 @@ const statusColor = computed(() => {
   }
 })
 
+watch(() => props.previewStreamSource, (newVal, oldVal) => {
+  fallbackTriggered.value = false
+  loading.value = true
+})
+
 async function fetchStreamStatus() {
   try {
     const response = await fetch('/streams/' + props.streamid)
@@ -45,10 +55,15 @@ function handleLoad() {
   loading.value = false
 }
 
+const fallbackUrl = '/static/www/compiled/vite.svg'
+
 function handleError() {
   loading.value = false
-  console.error('Thumbnail failed to load.')
+  fallbackTriggered.value = true
 }
+
+const fallbackTriggered = ref(false)
+
 
 function handleMessage(event) {
   const data = JSON.parse(event.data)
@@ -79,17 +94,38 @@ onBeforeUnmount(() => {
     socket.value.removeEventListener('message', handleMessage)
   }
 })
+
+
+const imageUrl = computed(() => {
+  if (fallbackTriggered.value) {
+    return fallbackUrl
+  }
+  if (props.preview) {
+    return '/preview/' + btoa(props.previewStreamSource)
+  } else {
+    return '/thumbnail/' + props.streamid
+  }
+})
+
 </script>
 
 
 <template>
   <div id="streamPreview">
-    <img
-      :src="(preview)?'/preview/'+streamid:'/thumbnail/'+streamid"
-      class="previewImage"
-      @load="handleLoad"
-      @error="handleError"
-    />
+    <template v-if="!fallbackTriggered">
+      <img
+        :src="imageUrl"
+        class="previewImage"
+        @load="handleLoad"
+        @error="handleError"
+      />
+    </template>
+    <template v-else>
+      <div class="fallbackIconContainer">
+        <Icon icon="mdi:image-off" class="fallbackIcon" />
+      </div>
+    </template>
+
     <div v-if="loading" class="spinner"></div> 
     <div class="previewFooter">
       <div :class="['previewStatusIndicator', statusColor]"></div>
@@ -100,6 +136,20 @@ onBeforeUnmount(() => {
 
 
 <style scoped>
+.fallbackIconContainer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #23252C;
+}
+
+.fallbackIcon {
+  font-size: 48px;
+  color: #4a4d57;
+}
+
 #streamPreview {
   width: 233px;
   height: 162px;

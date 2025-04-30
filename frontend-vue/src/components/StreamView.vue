@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted,onBeforeUnmount } from 'vue'
+import { ref, onMounted,onBeforeUnmount, computed } from 'vue'
 import StreamPreview from './StreamPreview.vue'
 import StreamPreviewAdd from './StreamPreviewAdd.vue'
 
@@ -17,6 +17,33 @@ const closeOverlay = () => {
 
 const streams = ref([])
 
+const addStreamByOverlay = () => {
+  const streamName = newStreamName.value
+  const streamSource = newStreamSource.value
+
+  if (streamName && streamSource) {
+    streams.value.push(streamName)
+    console.log('Adding stream:', streamName, streamSource);
+    newStreamName.value = 'awesome-stream-name'
+    newStreamSource.value = 'rtsp://user:password@host/h264'
+    closeOverlay()
+  } else {
+    console.error('Stream name and source are required')
+  }
+}
+
+const invalidNameReason = ref('')
+
+const isNameValid = computed(() => {
+  if( /^[a-zA-Z0-9-_]{3,35}$/.test(newStreamName.value)) {
+    invalidNameReason.value = ''
+    return true
+  } else {
+    invalidNameReason.value = 'Error. Allowed: a-z, 0-9, -, _, 3-35 Characters allowed.'
+    return false
+  }
+})
+
 onMounted(async () => {
   try {
     const response = await fetch('/streams')
@@ -31,6 +58,8 @@ onMounted(async () => {
   }
 })
 
+const newStreamName = ref("awesome-stream-name")
+const newStreamSource = ref("rtsp://user:password@host/h264")
 </script>
 
 <template>
@@ -43,32 +72,47 @@ onMounted(async () => {
     <StreamPreviewAdd @click="openOverlay"/>
   </div>
   <transition name="overlay-fade">
-    <Overlay v-if="showOverlay" @close-overlay="closeOverlay">
-      <div class="addStream">
-        <div class="addStream-left">
-          <p>Stream name</p>
-          <input type="text" placeholder="awesome-stream-name" />
-          <p>Stream source</p>
-          <input type="text" placeholder="rtsp://user:password@host/h264" />
-          <ul class="example">
-            <li>
-              <label for="stream2">rtsp://user:password@host/h264</label>
-            </li>
-            <li>
-              <label for="stream3">file:///data/image.png</label>
-            </li>
-          </ul>
+    <Overlay v-if="showOverlay" title="Add Stream" @close-overlay="closeOverlay">
+      <template #content>
+        <div class="addStream">
+          <div class="addStream-left">
+            <p>Stream name</p>
+            <input v-model="newStreamName" type="text" placeholder="awesome-stream-name" :class="{ invalidname: !isNameValid }" />
+            <div class="invalidnameTextWrapper">
+              <p class="invalidnameText" :class="{ hidden: isNameValid }">{{ invalidNameReason }}</p>
+            </div>
+            <p>Stream source</p>
+            <input v-model="newStreamSource" type="text" placeholder="rtsp://user:password@host/h264" />
+            <ul class="example">
+              <li>
+                <label>rtsp://user:password@host/h264</label>
+              </li>
+              <li>
+                <label>file:///data/image.png</label>
+              </li>
+            </ul>
+          </div>
+          <div class="addStream-Right">
+            <p>Preview</p>
+            <StreamPreview :streamid="newStreamName" :previewStreamSource="newStreamSource" preview=true />
+          </div>
         </div>
-        <div class="addStream-Right">
-          <p>Preview</p>
-          <StreamPreview streamid="awesome-stream-name" preview=true />
-        </div>
-      </div>
+      </template>
+      <template #footer>
+        <button class="addStreamBtn" @click="addStreamByOverlay" :disabled="!isNameValid">
+          <p>Add</p>
+          <Icon icon="mdi-plus" style="font-size: 20px;" />
+        </button>
+      </template>
     </Overlay>
   </transition>
 </template>
 
 <style scoped>
+.invalidname {
+  color: #f25540;
+}
+
 #streamFlexbox {
   display: flex;
   flex-direction: row;
@@ -81,7 +125,8 @@ onMounted(async () => {
   gap: 17px;
 }
 
-.addStream {  display: grid;
+.addStream {  
+  display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr;
   gap: 0px 0px;
@@ -119,6 +164,35 @@ onMounted(async () => {
   align-items: center;
 }
 
+.addStreamBtn {
+  background-color: #406af2;
+  width: 88px;
+  height: 44px;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* Adds spacing between the text and the icon */
+  margin: 0px;
+  padding-top: 3px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.addStreamBtn p {
+  padding-top: 2px;
+}
+
+.addStreamBtn:disabled {
+  background-color: #4069f252;
+  color: #9b9b9b;
+  cursor: not-allowed;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
 .example {
   font-size: 0.8rem;
   color: #4a4d57;
@@ -127,6 +201,23 @@ onMounted(async () => {
 
 .example {
   margin-top: 0px;
+}
+
+
+.invalidnameTextWrapper {
+  height: 16px; /* enough for 1 line of text */
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.invalidnameText {
+  color: #f25540;
+  font-size: 0.7rem !important;
+  transition: opacity 0.3s;
+}
+
+.hidden {
+  opacity: 0;
 }
 
 </style>

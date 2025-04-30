@@ -7,24 +7,28 @@ const emit = defineEmits()
 const closeOverlay = () => {
   emit('close-overlay')  // Emit event to close the overlay in the parent
 }
+
+const props = defineProps({
+  title: String
+})
+
+
 </script>
 
 <template>
   <div class="overlay">
     <div class="overlay-inner">
         <div class="overlay-header">
-            <h1>Overlay Title</h1>
+            <h1>{{ title }}</h1>
             <button class="close-overlay" @click="closeOverlay">
                 <Icon icon="mdi-close" style="font-size: 32px; color: #4A4D57;" />
             </button>
         </div>
         <div class="overlay-content">
-            <slot /> 
+            <slot name="content" /> 
         </div>
         <div class="overlay-footer">
-            <button class="">
-                <p>Add</p>
-            </button>
+            <slot name="footer" /> 
         </div>
     </div>
   </div>
@@ -80,6 +84,9 @@ const closeOverlay = () => {
 
 .overlay-footer { 
     grid-area: overlay-footer; 
+    display: flex;
+    justify-content: end;
+    flex-direction: row;
 }
 .overlay-content { 
     grid-area: overlay-content; 

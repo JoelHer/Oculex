@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
-from backend.routes import getImage, helloworld, interface, getBoxes, setBoxes, getSettings, setSettings, dashboard, streams
+from backend.routes import getImage, helloworld, interface, getBoxes, setBoxes, getSettings, setSettings, dashboard, streams, preview
 import uuid
 from backend.StreamManager import StreamManager
 from backend.WebSocketManager import WebSocketManager
@@ -42,6 +42,7 @@ with open("/data/boxes.json", "r") as file:
     boxes = json.load(file)
 
 streamManager = StreamManager(verbose_logging=True, ws_manager=ws_manager)
+previewStreamManager = StreamManager(verbose_logging=True, ws_manager=ws_manager)
 #streamManager.add_stream("a", "rtsp://admin:herbstnvr@10.250.100.88:554/ch01.264", {"configValue": "12"}, settings, boxes)
 streamManager.load_streams("/data/streams.json")
 streamManager.store_streams("/data/streams.json")
@@ -54,6 +55,7 @@ setBoxes.configure_routes(streamManager)
 getBoxes.configure_routes(streamManager)
 dashboard.configure_routes(streamManager)
 streams.configure_routes(streamManager)
+preview.configure_routes(previewStreamManager)
 
 HttpServer.include_router(helloworld.router)
 HttpServer.include_router(interface.router)
@@ -64,6 +66,7 @@ HttpServer.include_router(getImage.router)
 HttpServer.include_router(setSettings.router)
 HttpServer.include_router(dashboard.router)
 HttpServer.include_router(streams.router)
+HttpServer.include_router(preview.router)
 
 static_path = os.path.join(os.path.dirname(__file__), "../frontend/static")
 dashboard_build_path = os.path.join(os.path.dirname(__file__), "../frontend/static/www/compiled")
