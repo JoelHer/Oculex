@@ -91,6 +91,8 @@ class StreamHandler:
                 if frame is not None:
                     _, buffer = cv2.imencode(".jpg", frame)
                     await self.update_status(StreamStatus.OK)
+                    resized_image = create_thumbnail(buffer, noDecode=True)
+                    cv2.imwrite(f"{CACHE_DIR}/thumbnails/{self.id}.jpg", resized_image)
                     return buffer.tobytes()
                 else:
                     await self.update_status(StreamStatus.NO_STREAM)
@@ -117,6 +119,8 @@ class StreamHandler:
                 if frame is not None:
                     _, buffer = cv2.imencode(".jpg", frame)
                     await self.update_status(StreamStatus.OK)
+                    resized_image = create_thumbnail(buffer, noDecode=True)
+                    cv2.imwrite(f"{CACHE_DIR}/thumbnails/{self.id}.jpg", resized_image)
                     return buffer.tobytes()
                 else:
                     await self.update_status(StreamStatus.NO_STREAM)
