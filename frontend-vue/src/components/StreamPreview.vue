@@ -4,6 +4,10 @@ import { useWebSocket } from '../websocket' // shared websocket
 
 const props = defineProps({
   streamid: String,
+  preview: {
+    type: Boolean,
+    default: false
+  }
 })
 
 const loading = ref(true) 
@@ -56,11 +60,18 @@ function handleMessage(event) {
 }
 
 onMounted(() => {
-  fetchStreamStatus()
+  if (props.preview) {
+    console.log('Preview mode enabled for stream:', props.streamid)
+    loading.value = false
+    status.value = 'NO_STREAM'
+  } else {
+    fetchStreamStatus()
+  }
 
   if (socket.value) {
     socket.value.addEventListener('message', handleMessage)
   }
+
 })
 
 onBeforeUnmount(() => {
@@ -74,7 +85,7 @@ onBeforeUnmount(() => {
 <template>
   <div id="streamPreview">
     <img
-      :src="'/thumbnail/' + streamid"
+      :src="(preview)?'/preview/'+streamid:'/thumbnail/'+streamid"
       class="previewImage"
       @load="handleLoad"
       @error="handleError"
