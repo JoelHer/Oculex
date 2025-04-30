@@ -56,6 +56,7 @@ function handleLoad() {
 }
 
 const fallbackUrl = '/static/www/compiled/vite.svg'
+const afterUrl = ref('')
 
 function handleError() {
   loading.value = false
@@ -67,10 +68,17 @@ const fallbackTriggered = ref(false)
 
 function handleMessage(event) {
   const data = JSON.parse(event.data)
-  if (data.type !== 'stream/status_update') return
-  if (data.stream_id == props.streamid) {
-    console.log(props.streamid,'- Received message:', data)
-    status.value = data.status
+  if (data.type == 'stream/status_update'){
+    if (data.stream_id == props.streamid) {
+      console.log(props.streamid,'- Received message:', data)
+      status.value = data.status
+    }
+  } else if (data.type == "stream/thumbnail_update") {
+    if (data.stream_id == props.streamid) {
+      console.log(props.streamid,'- Received message:', data)
+      status.value = data.status
+      afterUrl.value = "?"+Date.now()
+    }
   }
 }
 
@@ -101,9 +109,9 @@ const imageUrl = computed(() => {
     return fallbackUrl
   }
   if (props.preview) {
-    return '/preview/' + btoa(props.previewStreamSource)
+    return '/preview/' + btoa(props.previewStreamSource) + afterUrl.value
   } else {
-    return '/thumbnail/' + props.streamid
+    return '/thumbnail/' + props.streamid + afterUrl.value
   }
 })
 

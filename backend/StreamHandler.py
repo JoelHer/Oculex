@@ -93,6 +93,12 @@ class StreamHandler:
                     await self.update_status(StreamStatus.OK)
                     resized_image = create_thumbnail(buffer, noDecode=True)
                     cv2.imwrite(f"{CACHE_DIR}/thumbnails/{self.id}.jpg", resized_image)
+                    if self.ws_manager:
+                        await self.ws_manager.broadcast({
+                            "type": "stream/thumbnail_update",
+                            "stream_id": self.id,
+                            "status": self.status
+                        })
                     return buffer.tobytes()
                 else:
                     await self.update_status(StreamStatus.NO_STREAM)
@@ -121,6 +127,12 @@ class StreamHandler:
                     await self.update_status(StreamStatus.OK)
                     resized_image = create_thumbnail(buffer, noDecode=True)
                     cv2.imwrite(f"{CACHE_DIR}/thumbnails/{self.id}.jpg", resized_image)
+                    if self.ws_manager:
+                        await self.ws_manager.broadcast({
+                            "type": "stream/thumbnail_update",
+                            "stream_id": self.id,
+                            "status": self.status
+                        })
                     return buffer.tobytes()
                 else:
                     await self.update_status(StreamStatus.NO_STREAM)
