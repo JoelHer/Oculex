@@ -49,9 +49,8 @@ function handleError() {
 function handleMessage(event) {
   const data = JSON.parse(event.data)
   if (data.type !== 'stream/status_update') return
-  console.log(props.streamid,'- Received message:', data)
-  if (data.streamid == props.streamid) {
-    console.log('Updating status for stream:', props.streamid)
+  if (data.stream_id == props.streamid) {
+    console.log(props.streamid,'- Received message:', data)
     status.value = data.status
   }
 }

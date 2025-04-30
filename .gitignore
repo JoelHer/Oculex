@@ -2,4 +2,5 @@
 dev_data
 __pycache__
 node_modules
-/frontend/static/www/html/compiled/*
+frontend/static/www/compiled/
+/frontend/static/www/compiled
