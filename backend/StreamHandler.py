@@ -140,7 +140,7 @@ class StreamHandler:
                     return None
 
             except Exception as e:
-                await self.update_status(StreamStatus.NO_STREAM)
+                await self.update_status(StreamStatus.ERROR)
                 print(f"[StreamHandler] Error opening RTSP stream with url {self.rtsp_url}: {e}")
                 return None
 
@@ -255,7 +255,7 @@ class StreamHandler:
             return buffer.tobytes()
         frame_bytes = await self.grab_frame_raw()
         if frame_bytes is None:
-            await self.update_status(StreamStatus.NO_STREAM)
+            await self.update_status(StreamStatus.ERROR)
             return None
         resized_image = create_thumbnail(frame_bytes, noDecode=True)
         if resized_image is None:

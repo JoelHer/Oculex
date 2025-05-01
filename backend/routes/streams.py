@@ -3,6 +3,8 @@ from fastapi.responses import JSONResponse
 import json
 from backend.StreamManager import StreamManager
 from pathlib import Path
+from pydantic import BaseModel
+import re
 
 router = APIRouter(prefix="/streams")
 
@@ -36,3 +38,20 @@ async def get_stream(stream_id: str):
     }
     
     return JSONResponse(content=stream_info)
+
+
+class StreamModel(BaseModel):
+    name: str
+    stream_src: str | None = "rtsp://user:password@host/h264"
+
+@router.post("/add", response_class=JSONResponse)
+async def add_stream(stream: StreamModel):
+    pattern = re.compile("^[a-zA-Z0-9-_]{3,35}$")
+    print(stream)
+    if pattern.match(stream.name):
+        streamManager.add_stream(stream.name,stream.stream_src,None,[],[])
+        streamManager.store_streams()
+        return JSONResponse(status_code=200, content={"success": True})
+    else:
+        return JSONResponse(status_code=406, content={"error": "Illegal characters"}) # 406 Not Acceptable, This response is sent when the web server, after performing server-driven content negotiation, doesn't find any content that conforms to the criteria given by the user agent.
+

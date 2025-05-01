@@ -22,11 +22,27 @@ const addStreamByOverlay = () => {
   const streamSource = newStreamSource.value
 
   if (streamName && streamSource) {
-    streams.value.push(streamName)
+    //make a post request to add the stream
     console.log('Adding stream:', streamName, streamSource);
-    newStreamName.value = 'awesome-stream-name'
-    newStreamSource.value = 'rtsp://user:password@host/h264'
-    closeOverlay()
+    const response = fetch('/streams/add', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name: streamName, stream_src: streamSource })
+    }).then(response => {
+      if (response.ok) {
+        console.log('Stream added successfully')
+        streams.value.push(streamName)
+        newStreamName.value = 'awesome-stream-name'
+        newStreamSource.value = 'rtsp://user:password@host/h264'
+        closeOverlay()
+      } else {
+        console.error('Failed to add stream:', response.status)
+      }
+    }).catch(error => {
+      console.error('Error adding stream:', error)
+    })
   } else {
     console.error('Stream name and source are required')
   }

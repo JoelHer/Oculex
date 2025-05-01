@@ -16,6 +16,7 @@ class StreamManager:
         self.streams = {}
         self.ws_manager = ws_manager
         self.VERBOSE_LOGGING = verbose_logging
+        self.store_location = "/data/streams.json"
 
     def add_stream(self, stream_id, rtsp_url, config, processingSettings, selectionBoxes):
         self.streams[stream_id] = StreamHandler(stream_id, rtsp_url, config, processingSettings, selectionBoxes, ws_manager=self.ws_manager)
@@ -26,10 +27,15 @@ class StreamManager:
         """Return the stream handler for the given stream ID."""
         return self.streams.get(stream_id)
 
+    def set_store_location(self, filepath):
+        self.store_location = filepath
+
     def list_streams(self):
         return list(self.streams.keys())
 
-    def store_streams(self, filename):
+    def store_streams(self, filename=None):
+        if not filename:
+            filename = self.store_location
         """Store the current streams to the specified file."""
         data = {}
         for stream_id, handler in self.streams.items():
