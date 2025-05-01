@@ -220,6 +220,7 @@ class StreamHandler:
             await self.update_status(StreamStatus.ERROR)
             return "Error: Could not decode frame", 500
 
+        
         snippets = []
         for box in self.selectionBoxes:
             box_top = box["box_top"]

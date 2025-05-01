@@ -1,28 +1,36 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+from fastapi.concurrency import run_in_threadpool
 from backend.StreamManager import StreamManager
+from concurrent.futures import ProcessPoolExecutor
 import io
 import base64
 import cv2
 import numpy as np
 import av
+import asyncio
 
+executor = ProcessPoolExecutor(max_workers=4)
 router = APIRouter(prefix="/preview")
 # Inject the shared StreamManager instance
 def configure_routes(stream_manager: StreamManager):
     global streamManager
     streamManager = stream_manager
     
+
+async def run_in_process(fn, *args):
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(executor, fn, *args)
+
 @router.get("/{stream_source_uri}")
 async def get_thumbnail(stream_source_uri: str):
     try:
-        img = await grab_frame_raw(base64.b64decode(stream_source_uri).decode('UTF-8'))
+        img = await run_in_process(grab_frame_raw, base64.b64decode(stream_source_uri).decode('UTF-8'))
         return StreamingResponse(io.BytesIO(img), media_type="image/jpeg")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 async def grab_frame_raw(uri): # TODO FIX HUGE SECURITY LIABILITY ASAP
-    
     if uri.startswith("file://"):
         file_path = uri[7:]
         print(f"[PreviewStreamHandler] Opening file {file_path} instead of RTSP stream")
