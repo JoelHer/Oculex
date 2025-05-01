@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted,onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted,onBeforeUnmount, computed, watch } from 'vue'
 import StreamPreview from './StreamPreview.vue'
 import StreamPreviewAdd from './StreamPreviewAdd.vue'
 
@@ -60,6 +60,15 @@ onMounted(async () => {
 
 const newStreamName = ref("awesome-stream-name")
 const newStreamSource = ref("rtsp://user:password@host/h264")
+const debouncedStreamSource = ref(newStreamSource.value)
+let debounceTimeout
+
+watch(newStreamSource, (val) => {
+  clearTimeout(debounceTimeout)
+  debounceTimeout = setTimeout(() => {
+    debouncedStreamSource.value = val
+  }, 500)
+})
 </script>
 
 <template>
@@ -94,7 +103,7 @@ const newStreamSource = ref("rtsp://user:password@host/h264")
           </div>
           <div class="addStream-Right">
             <p>Preview</p>
-            <StreamPreview :streamid="newStreamName" :previewStreamSource="newStreamSource" preview=true />
+            <StreamPreview :streamid="newStreamName" :previewStreamSource="debouncedStreamSource" preview=true />
           </div>
         </div>
       </template>
