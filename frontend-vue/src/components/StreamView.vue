@@ -90,6 +90,14 @@ watch(newStreamSource, (val) => {
     debouncedStreamSource.value = val
   }, 500)
 })
+
+const deleteStream = (streamId) => {
+  const index = streams.value.indexOf(streamId)
+  if (index > -1) {
+    streams.value.splice(index, 1)
+  }
+}
+
 </script>
 
 <template>
@@ -100,6 +108,7 @@ watch(newStreamSource, (val) => {
           :key="stream"
           :streamid="stream"
           :editMode="editMode"
+          @remove-stream="deleteStream"
       />
       <StreamPreviewAdd v-if="editMode" @click="openOverlay"/>
     </div>

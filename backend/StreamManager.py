@@ -27,6 +27,16 @@ class StreamManager:
         """Return the stream handler for the given stream ID."""
         return self.streams.get(stream_id)
 
+    def delete_stream(self, stream_id):
+        """Remove the stream handler for the given stream ID."""
+        if stream_id in self.streams:
+            del self.streams[stream_id]
+            if self.VERBOSE_LOGGING:
+                print(f"[StreamManager] Removed stream with ID: {stream_id}")
+        else:
+            if self.VERBOSE_LOGGING:
+                print(f"[StreamManager] Stream with ID: {stream_id} not found.")
+
     def set_store_location(self, filepath):
         self.store_location = filepath
 

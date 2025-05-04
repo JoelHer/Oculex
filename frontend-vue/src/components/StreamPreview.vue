@@ -1,7 +1,9 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch, defineEmits  } from 'vue'
 import { useWebSocket } from '../websocket' // shared websocket
 import { Icon } from '@iconify/vue'
+import Overlay from './Overlay.vue'
+import UIButton from './UIButton.vue'
 
 const props = defineProps({
   streamid: String,
@@ -18,6 +20,8 @@ const props = defineProps({
     default: false
   }
 })
+
+const disableOverlayButtons = ref(false)
 
 const loading = ref(true) 
 const status = ref('UNKNOWN')
@@ -68,7 +72,27 @@ function handleError() {
 }
 
 const fallbackTriggered = ref(false)
+const showEditOverly = ref(false)
 
+const deleteAndAwait = async () => {
+  disableOverlayButtons.value = true
+  try {
+    const response = await fetch('/streams/' + props.streamid, {
+      method: 'DELETE'
+    })
+    if (response.ok) {
+      console.log('Stream deleted successfully')
+      removeStream()
+      showEditOverly.value = false
+    } else {
+      console.error('Failed to delete stream:', response.status)
+    }
+  } catch (error) {
+    console.error('Error deleting stream:', error)
+  } finally {
+    disableOverlayButtons.value = false
+  }
+}
 
 function handleMessage(event) {
   const data = JSON.parse(event.data)
@@ -107,6 +131,18 @@ onBeforeUnmount(() => {
   }
 })
 
+const closeEditOverlay = () => {
+  showEditOverly.value = false
+}
+
+const openEditOverlay = () => {
+  showEditOverly.value = true
+}
+
+const emit = defineEmits(['remove-stream'])
+const removeStream = () => {
+  emit('remove-stream', props.streamid)
+}
 
 const imageUrl = computed(() => {
   if (fallbackTriggered.value) {
@@ -142,9 +178,9 @@ const imageUrl = computed(() => {
       </div>
     </template>
     <button v-if="editMode" class="editButton">
-      <Icon icon="mdi-pen" style="font-size: 20px;" />
+      <Icon icon="mdi-pencil" style="font-size: 20px;" />
     </button>
-    <button v-if="editMode" class="deleteButton">
+    <button v-if="editMode" class="deleteButton" @click="openEditOverlay">
       <Icon icon="mdi:trash-can-outline" style="font-size: 21px;" />
     </button>
     <div v-if="loading" class="spinner"></div> 
@@ -153,6 +189,17 @@ const imageUrl = computed(() => {
       <p class="previewText">{{ streamid }}</p>
     </div>
   </div>
+  <transition name="overlay-fade">
+    <Overlay v-if="showEditOverly" title="Confirm Deletion?" @close-overlay="closeEditOverlay" width="15%" height="15%" >
+      <template #content>
+        <p>Deleting a stream is an irreversable action. Are you sure you want to delete the stream?</p>
+      </template>
+      <template #footer>
+        <UIButton @click="closeEditOverlay" :disabled="disableOverlayButtons" icon="mdi:close" text="Cancel" bgColor="#4a4d57"/>
+        <UIButton @click="deleteAndAwait" :disabled="disableOverlayButtons" icon="mdi:trash-can-outline" text="Delete" bgColor="#f25540"/>
+      </template>
+    </Overlay>
+  </transition>
 </template>
 
 

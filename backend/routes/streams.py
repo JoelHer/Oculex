@@ -39,6 +39,20 @@ async def get_stream(stream_id: str):
     
     return JSONResponse(content=stream_info)
 
+@router.delete("/{stream_id}", response_class=JSONResponse)
+async def delete_stream(stream_id: str):
+    """
+    Delete a stream.
+    """
+    stream_handler = streamManager.get_stream(stream_id)
+    if not stream_handler:
+        return JSONResponse(status_code=404, content={"error": "Stream not found"})
+    
+    streamManager.delete_stream(stream_id)
+    streamManager.store_streams()
+    
+    return JSONResponse(status_code=200, content={"success": True})
+
 
 class StreamModel(BaseModel):
     name: str
