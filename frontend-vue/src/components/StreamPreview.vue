@@ -12,6 +12,10 @@ const props = defineProps({
   previewStreamSource: {
     type: String,
     default: '/data/rtsp.png'
+  },
+  editMode: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -121,19 +125,28 @@ const imageUrl = computed(() => {
 <template>
   <div id="streamPreview">
     <template v-if="!fallbackTriggered">
-      <img
+      <img 
         :src="imageUrl"
         class="previewImage"
+        :style="{ filter: editMode ? 'blur(4px)' : 'blur(0px)', transition: 'filter 0.3s ease' }"
         @load="handleLoad"
         @error="handleError"
       />
     </template>
     <template v-else>
-      <div class="fallbackIconContainer">
+      <div 
+        class="fallbackIconContainer"
+        :style="{ filter: editMode ? 'blur(4px)' : 'blur(0px)', transition: 'filter 0.3s ease' }"
+      >
         <Icon icon="mdi:image-off" class="fallbackIcon" />
       </div>
     </template>
-
+    <button v-if="editMode" class="editButton">
+      <Icon icon="mdi-pen" style="font-size: 20px;" />
+    </button>
+    <button v-if="editMode" class="deleteButton">
+      <Icon icon="mdi:trash-can-outline" style="font-size: 21px;" />
+    </button>
     <div v-if="loading" class="spinner"></div> 
     <div class="previewFooter">
       <div :class="['previewStatusIndicator', statusColor]"></div>
@@ -151,6 +164,38 @@ const imageUrl = computed(() => {
   align-items: center;
   justify-content: center;
   background-color: #23252C;
+}
+
+.editButton {
+  position: absolute;
+  height: 37px;
+  width: 37px;
+  top: 10px;
+  left: 10px;
+  background-color: #406AF2;
+  border: none;
+  cursor: pointer;
+  border-radius: 11px;
+  padding: 0px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.deleteButton {
+  position: absolute;
+  height: 37px;
+  width: 37px;
+  top: 10px;
+  right: 10px;
+  background-color: #f25540;
+  border: none;
+  cursor: pointer;
+  border-radius: 11px;
+  padding: 0px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .fallbackIcon {

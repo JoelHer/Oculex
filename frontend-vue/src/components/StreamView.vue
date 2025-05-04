@@ -99,6 +99,7 @@ watch(newStreamSource, (val) => {
           v-for="stream in streams"
           :key="stream"
           :streamid="stream"
+          :editMode="editMode"
       />
       <StreamPreviewAdd v-if="editMode" @click="openOverlay"/>
     </div>
