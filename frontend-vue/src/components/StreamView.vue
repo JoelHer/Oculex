@@ -74,8 +74,13 @@ onMounted(async () => {
   }
 })
 
+const toggleEditMode = () => {
+  editMode.value = !editMode.value
+}
+
 const newStreamName = ref("awesome-stream-name")
 const newStreamSource = ref("rtsp://user:password@host/h264")
+const editMode = ref(false)
 const debouncedStreamSource = ref(newStreamSource.value)
 let debounceTimeout
 
@@ -88,52 +93,111 @@ watch(newStreamSource, (val) => {
 </script>
 
 <template>
-  <div id="streamFlexbox">
-    <StreamPreview
-        v-for="stream in streams"
-        :key="stream"
-        :streamid="stream"
-    />
-    <StreamPreviewAdd @click="openOverlay"/>
-  </div>
-  <transition name="overlay-fade">
-    <Overlay v-if="showOverlay" title="Add Stream" @close-overlay="closeOverlay">
-      <template #content>
-        <div class="addStream">
-          <div class="addStream-left">
-            <p>Stream name</p>
-            <input v-model="newStreamName" type="text" placeholder="awesome-stream-name" :class="{ invalidname: !isNameValid }" />
-            <div class="invalidnameTextWrapper">
-              <p class="invalidnameText" :class="{ hidden: isNameValid }">{{ invalidNameReason }}</p>
+  <div class="streamView">
+    <div id="streamFlexbox">
+      <StreamPreview
+          v-for="stream in streams"
+          :key="stream"
+          :streamid="stream"
+      />
+      <StreamPreviewAdd v-if="editMode" @click="openOverlay"/>
+    </div>
+    <transition name="overlay-fade">
+      <Overlay v-if="showOverlay" title="Add Stream" @close-overlay="closeOverlay">
+        <template #content>
+          <div class="addStream">
+            <div class="addStream-left">
+              <p>Stream name</p>
+              <input v-model="newStreamName" type="text" placeholder="awesome-stream-name" :class="{ invalidname: !isNameValid }" />
+              <div class="invalidnameTextWrapper">
+                <p class="invalidnameText" :class="{ hidden: isNameValid }">{{ invalidNameReason }}</p>
+              </div>
+              <p>Stream source</p>
+              <input v-model="newStreamSource" type="text" placeholder="rtsp://user:password@host/h264" />
+              <ul class="example">
+                <li>
+                  <label>rtsp://user:password@host/h264</label>
+                </li>
+                <li>
+                  <label>file:///data/image.png</label>
+                </li>
+              </ul>
             </div>
-            <p>Stream source</p>
-            <input v-model="newStreamSource" type="text" placeholder="rtsp://user:password@host/h264" />
-            <ul class="example">
-              <li>
-                <label>rtsp://user:password@host/h264</label>
-              </li>
-              <li>
-                <label>file:///data/image.png</label>
-              </li>
-            </ul>
+            <div class="addStream-Right">
+              <p>Preview</p>
+              <StreamPreview :streamid="newStreamName" :previewStreamSource="debouncedStreamSource" preview=true />
+            </div>
           </div>
-          <div class="addStream-Right">
-            <p>Preview</p>
-            <StreamPreview :streamid="newStreamName" :previewStreamSource="debouncedStreamSource" preview=true />
-          </div>
-        </div>
-      </template>
-      <template #footer>
-        <button class="addStreamBtn" @click="addStreamByOverlay" :disabled="!isNameValid">
-          <p>Add</p>
-          <Icon icon="mdi-plus" style="font-size: 20px;" />
-        </button>
-      </template>
-    </Overlay>
-  </transition>
+        </template>
+        <template #footer>
+          <button class="addStreamBtn" @click="addStreamByOverlay" :disabled="!isNameValid">
+            <p>Add</p>
+            <Icon icon="mdi-plus" style="font-size: 20px;" />
+          </button>
+        </template>
+      </Overlay>
+    </transition>
+    <button @click="toggleEditMode" class="floating-button">
+      <transition name="fade-scale" mode="out-in">
+        <Icon
+          v-if="editMode"
+          key="close"
+          icon="mdi-close"
+          style="font-size: 26px;"
+        />
+        <Icon
+          v-else
+          key="edit"
+          icon="mdi-edit"
+          style="font-size: 24px;"
+        />
+      </transition>
+    </button>
+  </div>
 </template>
 
 <style scoped>
+.fade-scale-enter-active,
+.fade-scale-leave-active {
+  transition: all 0.2s ease;
+}
+.fade-scale-enter-from,
+.fade-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+
+.floating-button {
+  width: 48px;
+  height: 48px;
+  position: fixed;
+  bottom: 20px;    /* Distance from the bottom */
+  right: 20px;     /* Distance from the right */
+  padding: 0px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  border-radius: 12px;
+  background-color: #007bff;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease;
+}
+
+.floating-button:hover {
+  background-color: #0056b3;
+  transition: background-color 0.3s ease;
+}
+
+.streamView {
+  height: 100%;
+  width: 100%;
+}
+
 .invalidname {
   color: #f25540;
 }

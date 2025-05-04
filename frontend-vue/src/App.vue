@@ -6,7 +6,7 @@ import Overlay from './components/Overlay.vue'
 const showOverlay = ref(false)
 </script>
 
-<template>
+<template class="app">
   <StreamView />
   <transition name="overlay-fade">
     <Overlay v-if="showOverlay" @update:showOverlay="showOverlay = $event">
@@ -16,6 +16,11 @@ const showOverlay = ref(false)
 </template>
 
 <style scoped>
+.app {
+  height: 100%;
+  width: 100%;
+}
+
 #openOverlayButton,
 #closeOverlayButton {
   padding: 10px 20px;
