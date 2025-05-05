@@ -182,7 +182,7 @@ const deleteStream = (streamId) => {
   width: 48px;
   height: 48px;
   position: fixed;
-  bottom: 20px;    /* Distance from the bottom */
+  bottom: 45px;    /* Distance from the bottom */
   right: 20px;     /* Distance from the right */
   padding: 0px;
   display: flex;

@@ -1,24 +1,82 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import StreamView from './components/StreamView.vue'
 import Overlay from './components/Overlay.vue'
+import FooterComponent from './components/footerComponent.vue'
+import { useWebSocket } from './websocket.js'
 
+const { connectionStatus } = useWebSocket()
+const connectionTitle = computed(() => {
+  switch (connectionStatus.value) {
+    case 'connected':
+      return 'Connected to Server'
+    case 'connecting':
+      return 'Connecting to Server...'
+    default:
+      return 'Not Connected to Server'
+  }
+})
+
+const connectionColor = computed(() => {
+  switch (connectionStatus.value) {
+    case 'connected':
+      return '#40F284'
+    case 'connecting':
+      return '#f2b440'
+    default:
+      return '#f25540'
+  }
+})
 const showOverlay = ref(false)
 </script>
 
-<template class="app">
-  <StreamView />
-  <transition name="overlay-fade">
-    <Overlay v-if="showOverlay" @update:showOverlay="showOverlay = $event">
-      <h1>Overlay Content</h1>
-    </Overlay>
-  </transition>
+<template>
+  <div class="app">
+    <div class="app-container">
+      <StreamView />
+      <transition name="overlay-fade">
+        <Overlay v-if="showOverlay" @update:showOverlay="showOverlay = $event">
+          <h1>Overlay Content</h1>
+        </Overlay>
+      </transition>
+    </div>
+    <div class="app-footer">
+      <FooterComponent :title="connectionTitle" :dotcolor="connectionColor" />
+    </div>
+  </div>
 </template>
 
 <style scoped>
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
 .app {
-  height: 100%;
+  height: 100vh;
   width: 100%;
+  display: grid; 
+  grid-template-columns: 1fr; 
+  grid-template-rows: 1fr 25px; 
+  gap: 0; 
+  grid-template-areas: 
+    "app-container"
+    "app-footer"; 
+}
+
+.app-footer {
+  height: 25px;
+  grid-area: app-footer;
+  background-color: #23252c;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.app-container {
+  grid-area: app-container;
+  overflow: hidden;
 }
 
 #openOverlayButton,
@@ -35,7 +93,6 @@ const showOverlay = ref(false)
   padding: 20px;
 }
 
-/* Close button positioned at top-right corner */
 #closeOverlayButton {
   position: absolute;
   top: 10px;
@@ -45,7 +102,7 @@ const showOverlay = ref(false)
   cursor: pointer;
 }
 
-/* --- Transition classes for overlay --- */
+/* Transition for overlay */
 .overlay-fade-enter-active {
   transition: opacity 0.3s ease-in;
 }
