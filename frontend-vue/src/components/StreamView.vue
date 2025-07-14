@@ -104,11 +104,12 @@ const deleteStream = (streamId) => {
   <div class="streamView">
     <div id="streamFlexbox">
       <StreamPreview
-          v-for="stream in streams"
-          :key="stream"
-          :streamid="stream"
-          :editMode="editMode"
-          @remove-stream="deleteStream"
+        v-for="stream in streams"
+        :key="stream"
+        :streamid="stream"
+        :editMode="editMode"
+        @remove-stream="deleteStream"
+        @open-stream-editor="$emit('open-stream-editor', stream)"
       />
       <StreamPreviewAdd v-if="editMode" @click="openOverlay"/>
     </div>

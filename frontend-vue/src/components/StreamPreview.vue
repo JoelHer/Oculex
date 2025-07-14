@@ -159,7 +159,7 @@ const imageUrl = computed(() => {
 
 
 <template>
-  <div id="streamPreview">
+  <div id="streamPreview" @click="!editMode && $emit('open-stream-editor', streamid)">
     <template v-if="!fallbackTriggered">
       <img 
         :src="imageUrl"

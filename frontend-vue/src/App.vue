@@ -1,9 +1,17 @@
 <script setup>
 import { ref, computed } from 'vue'
 import StreamView from './components/StreamView.vue'
+import StreamEditor from './components/StreamEditor.vue'
 import Overlay from './components/Overlay.vue'
 import FooterComponent from './components/footerComponent.vue'
 import { useWebSocket } from './websocket.js'
+
+const currentStreamId = ref(null)
+
+const openStreamEditor = (streamId) => {
+  currentStreamId.value = streamId
+  view.value = 'StreamEditor'
+}
 
 const { connectionStatus } = useWebSocket()
 const connectionTitle = computed(() => {
@@ -28,12 +36,16 @@ const connectionColor = computed(() => {
   }
 })
 const showOverlay = ref(false)
+
+const view = ref('StreamView') 
+
 </script>
 
 <template>
   <div class="app">
     <div class="app-container">
-      <StreamView />
+      <StreamEditor v-if="view === 'StreamEditor'" :stream-id="currentStreamId" @close="view = 'StreamView'" />
+      <StreamView v-else-if="view === 'StreamView'" @open-stream-editor="openStreamEditor" />
       <transition name="overlay-fade">
         <Overlay v-if="showOverlay" @update:showOverlay="showOverlay = $event">
           <h1>Overlay Content</h1>
