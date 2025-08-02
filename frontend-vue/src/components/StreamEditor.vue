@@ -1,12 +1,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import Overview from './StreamEditor-Components/StreamEditor-overview.vue'
+import Ocrengine from './StreamEditor-Components/StreamEditor-ocrengine.vue'
+import Source from './StreamEditor-Components/StreamEditor-source.vue'
+import Parser from './StreamEditor-Components/StreamEditor-parser.vue'
 
 const props = defineProps({
   streamId: String
 })
 
-const count = ref(0)
 const streamUrl = ref('Loading URL...')
+const view = ref('overview') 
 
 onMounted(() => {
     fetchStreamData()
@@ -32,9 +36,6 @@ async function fetchStreamData() {
         throw new Error('Error fetching streams: ' + error)
     }
 }
-
-
-
 </script>
 
 <template>
@@ -63,8 +64,10 @@ async function fetchStreamData() {
             </div>
         </div>
         <div class="editorView">
-            <div class="container navbarContainer">
-            </div>
+            <Overview v-if="view === 'overview'" />
+            <Source v-else-if="view === 'source'"/>
+            <Parser v-else-if="view === 'parser'"/>
+            <Ocrengine v-else-if="view === 'ocrengine'"/>
         </div>
     </div>
 </template>
