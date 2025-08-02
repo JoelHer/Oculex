@@ -9,6 +9,13 @@ const props = defineProps({
   streamId: String
 })
 
+const views = [
+  { id: 'overview',   label: 'Overview' },
+  { id: 'source',     label: 'Source' },
+  { id: 'parser',     label: 'Parser' },
+  { id: 'ocrengine',  label: 'OCR Engine' },
+]
+
 const streamUrl = ref('Loading URL...')
 const view = ref('overview') 
 
@@ -39,37 +46,50 @@ async function fetchStreamData() {
 </script>
 
 <template>
-    <div class="streamEditor">
-        <div class="editorNavbar">
-            <div class="container titleContainer">
-                <div class="back-button" @click="$emit('close')">
-                    <Icon icon="mdi:chevron-left" style="font-size: 30px;" />
-                </div>
-                <h1>Stream Editor</h1>
-            </div>
-            <div class="container navbarContainer">
-                <div class="navbarContainer-header">
-                    <img 
-                        :src="'/thumbnail/'+streamId" 
-                        class="stream-thumbnail"
-                    ></img>
-                    <div style="display: flex; flex-direction: column; align-items: flex-start; width: calc( 100% - 110px);">
-                        <h1 class="stream-title" style="padding: 0px;">{{ streamId }}</h1>
-                        <p class="stream-title-description">{{ streamUrl }}</p>
-                    </div>
-                </div>
-                <div class="navbarContainer-body">
+  <div class="streamEditor">
+    <div class="editorNavbar">
+      <div class="container titleContainer">
+        <div class="back-button" @click="$emit('close')">
+          <Icon icon="mdi:chevron-left" style="font-size: 30px;" />
+        </div>
+        <h1>Stream Editor</h1>
+      </div>
 
-                </div>
-            </div>
+      <div class="container navbarContainer">
+        <div class="navbarContainer-header">
+          <img 
+            :src="'/thumbnail/'+streamId" 
+            class="stream-thumbnail"
+          />
+          <div class="stream-info">
+            <h1 class="stream-title">{{ streamId }}</h1>
+            <p class="stream-title-description">{{ streamUrl }}</p>
+          </div>
         </div>
-        <div class="editorView">
-            <Overview v-if="view === 'overview'" />
-            <Source v-else-if="view === 'source'"/>
-            <Parser v-else-if="view === 'parser'"/>
-            <Ocrengine v-else-if="view === 'ocrengine'"/>
+
+        <div class="navbarContainer-body">
+            <div class="nav-separator"></div>
+            <ul class="view-selector">
+                <li 
+                    v-for="item in views" 
+                    :key="item.id"
+                    :class="{ active: view === item.id }"
+                    @click="view = item.id"
+                >
+                    {{ item.label }}
+                </li>
+            </ul>
         </div>
+      </div>
     </div>
+
+    <div class="editorView">
+      <Overview    v-if="view === 'overview'" :stream-name="props.streamId" />
+      <Source      v-else-if="view === 'source'" />
+      <Parser      v-else-if="view === 'parser'" :stream-name="props.streamId"/>
+      <Ocrengine   v-else-if="view === 'ocrengine'" />
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -142,8 +162,10 @@ async function fetchStreamData() {
     overflow: hidden;
 }
 
-.navbarContainer-body { 
-    grid-area: navbarContainer-body; 
+.navbarContainer-body {
+  grid-area: navbarContainer-body;
+  padding: 10px;
+  padding-top: 0px;
 }
 
 .navbarContainer-header h1 {
@@ -186,5 +208,39 @@ async function fetchStreamData() {
     color: #797979;
     font-size: 0.9rem;
 }
+
+.view-selector {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.view-selector li {
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #bbb;
+  transition: background-color 0.2s;
+}
+
+.view-selector li:hover {
+  background-color: #2d2f37;
+}
+
+.view-selector li.active {
+  background-color: #3f4250;
+  color: #fff;
+}
+
+.nav-separator {
+  height: 2px;
+  background-color: #3b3b3b;
+  margin: 12px 0;
+  margin-top: 0px;
+  width: 100%;
+}
+
 
 </style>
