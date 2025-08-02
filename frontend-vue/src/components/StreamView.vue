@@ -1,4 +1,6 @@
 <script setup>
+import { EoesStream } from '../models/EoesStream.js'
+import { StreamStatus } from '../models/StreamStatus.js'
 import { ref, onMounted,onBeforeUnmount, computed, watch } from 'vue'
 import StreamPreview from './StreamPreview.vue'
 import StreamPreviewAdd from './StreamPreviewAdd.vue'
@@ -22,6 +24,7 @@ const addStreamByOverlay = () => {
   const streamSource = newStreamSource.value
 
   if (streamName && streamSource) {
+    let newStream = new EoesStream(streamName, streamSource, StreamStatus.UNKOWN)
     //make a post request to add the stream
     console.log('Adding stream:', streamName, streamSource);
     const response = fetch('/streams/add', {
@@ -33,7 +36,7 @@ const addStreamByOverlay = () => {
     }).then(response => {
       if (response.ok) {
         console.log('Stream added successfully')
-        streams.value.push(streamName)
+        streams.value.push(newStream)
         newStreamName.value = 'awesome-stream-name'
         newStreamSource.value = 'rtsp://user:password@host/h264'
         closeOverlay()
@@ -65,7 +68,9 @@ onMounted(async () => {
     const response = await fetch('/streams')
     if (response.ok) {
       const data = await response.json()
-      streams.value = data.streams 
+      console.log('Fetched streams:', data.streams)
+      streams.value = data.streams.map(stream => new EoesStream(stream, null, StreamStatus.UNKOWN))
+      console.log('Streams initialized:', streams.value)
     } else {
       console.error('Failed to fetch streams:', response.status)
     }
@@ -92,11 +97,12 @@ watch(newStreamSource, (val) => {
 })
 
 const deleteStream = (streamId) => {
-  const index = streams.value.indexOf(streamId)
+  const index = streams.value.findIndex(stream => stream.name === streamId)
   if (index > -1) {
     streams.value.splice(index, 1)
   }
 }
+
 
 </script>
 
@@ -105,8 +111,8 @@ const deleteStream = (streamId) => {
     <div id="streamFlexbox">
       <StreamPreview
         v-for="stream in streams"
-        :key="stream"
-        :streamid="stream"
+        :key="stream.name"
+        :streamid="stream.name"
         :editMode="editMode"
         @remove-stream="deleteStream"
         @open-stream-editor="$emit('open-stream-editor', stream)"
