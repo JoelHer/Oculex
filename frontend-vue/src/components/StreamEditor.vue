@@ -1,11 +1,40 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
-defineProps({
+const props = defineProps({
   streamId: String
 })
 
 const count = ref(0)
+const streamUrl = ref('Loading URL...')
+
+onMounted(() => {
+    fetchStreamData()
+        .then(data => {
+            streamUrl.value = data.rtsp_url || 'No URL available'
+        })
+        .catch(error => {
+            console.error('Error fetching stream data:', error)
+        })
+})
+
+async function fetchStreamData() {
+    console.log('Fetching stream data for:', props.streamId)
+    try {
+        const response = await fetch('/streams/' + props.streamId)
+        if (response.ok) {
+            const data = await response.json()
+            return data
+        } else {
+            throw new Error('Failed to fetch streams: ' + response.status)
+        }
+    } catch (error) {
+        throw new Error('Error fetching streams: ' + error)
+    }
+}
+
+
+
 </script>
 
 <template>
@@ -24,8 +53,8 @@ const count = ref(0)
                         class="stream-thumbnail"
                     ></img>
                     <div style="display: flex; flex-direction: column; align-items: flex-start; width: calc( 100% - 110px);">
-                        <h1 class="stream-title">{{ streamId }}</h1>
-                        <p class="stream-title-description">url://{{ streamId }}</p>
+                        <h1 class="stream-title" style="padding: 0px;">{{ streamId }}</h1>
+                        <p class="stream-title-description">{{ streamUrl }}</p>
                     </div>
                 </div>
                 <div class="navbarContainer-body">
@@ -35,8 +64,6 @@ const count = ref(0)
         </div>
         <div class="editorView">
             <div class="container navbarContainer">
-                <h1>{{ msg }}</h1>
-                <button type="button" @click="count++">count is {{ count }}</button>
             </div>
         </div>
     </div>
