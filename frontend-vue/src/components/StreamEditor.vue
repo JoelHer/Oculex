@@ -19,7 +19,14 @@ const count = ref(0)
             </div>
             <div class="container navbarContainer">
                 <div class="navbarContainer-header">
-                    <h1>Editing Stream: {{ streamId }}</h1>
+                    <img 
+                        :src="'/thumbnail/'+streamId" 
+                        class="stream-thumbnail"
+                    ></img>
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; width: calc( 100% - 110px);">
+                        <h1 class="stream-title">{{ streamId }}</h1>
+                        <p class="stream-title-description">url://{{ streamId }}</p>
+                    </div>
                 </div>
                 <div class="navbarContainer-body">
 
@@ -27,8 +34,10 @@ const count = ref(0)
             </div>
         </div>
         <div class="editorView">
-            <h1>{{ msg }}</h1>
-            <button type="button" @click="count++">count is {{ count }}</button>
+            <div class="container navbarContainer">
+                <h1>{{ msg }}</h1>
+                <button type="button" @click="count++">count is {{ count }}</button>
+            </div>
         </div>
     </div>
 </template>
@@ -38,7 +47,7 @@ const count = ref(0)
     display: grid;
     height: 100%;
     width: 100%;
-    grid-template-columns: 300px 1fr;
+    grid-template-columns: 350px 1fr;
     grid-template-rows: 1fr;
     gap: 0px 0px;
     grid-auto-flow: row;
@@ -50,8 +59,8 @@ const count = ref(0)
     width: calc( 100% - 4px );
     min-height: 45px;
     background-color: #23252c;
-    border-radius: 18px;
-    border: #2d2f37 solid 3px;
+    border-radius: 15px;
+    border: #2d2f37 solid 2px;
 }
 
 .back-button {
@@ -88,18 +97,21 @@ const count = ref(0)
 
 .navbarContainer {
     display: grid; 
-    grid-auto-columns: 1fr; 
-    grid-template-columns: 1fr; 
-    grid-template-rows: 100px 1fr; 
-    gap: 0px 0px; 
+    grid-template-rows: auto 1fr; /* Let header row size dynamically */
     grid-template-areas: 
-        "navbarContainer-header"
-        "navbarContainer-body"; 
+    "navbarContainer-header"
+    "navbarContainer-body"; 
 }
 
-.navbarContainer-header { 
-    grid-area: navbarContainer-header; 
+
+.navbarContainer-header {
+    grid-area: navbarContainer-header;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    overflow: hidden;
 }
+
 .navbarContainer-body { 
     grid-area: navbarContainer-body; 
 }
@@ -115,6 +127,34 @@ const count = ref(0)
 
 .editorView { 
     grid-area: editorView;
+    padding: 20px;
+    padding-left: 0px;
+}
+
+.stream-thumbnail {
+    margin: 15px;
+    border-radius: 10px;
+    width: 80px;
+    height: 80px;
+}
+
+.stream-title {
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+    width: calc(100% - 20px);
+    text-wrap: nowrap;
+    padding: 0px;
+}
+
+.stream-title-description {
+    overflow-x: hidden;
+    margin: 0px;
+    text-overflow: ellipsis;
+    width: calc(100% - 20px);
+    text-wrap: nowrap;
+    padding: 0px;
+    color: #797979;
+    font-size: 0.9rem;
 }
 
 </style>
