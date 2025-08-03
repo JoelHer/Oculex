@@ -147,6 +147,19 @@ class StreamHandler:
 
     async def grab_frame(self, displayBoxes=True):
         print(f"[StreamHandler, grab_frame] Trying to open the RTSP stream at {self.rtsp_url}")
+        print(f"[StreamHandler, grab_frame] Current processing settings: {self.processingSettings}")
+        if len(self.processingSettings) == 0:
+            print("[StreamHandler, grab_frame] No processing settings found, using default values")
+            self.processingSettings = {
+                "rotation": 0,
+                "contrast": 1.0,
+                "brightness": 0,
+                "crop_top": 0,
+                "crop_bottom": 0,
+                "crop_left": 0,
+                "crop_right": 0
+
+            }
         try:
             # Use av.open with RTSP options
             container = av.open(self.rtsp_url, options={"rtsp_transport": "tcp"})
@@ -195,14 +208,14 @@ class StreamHandler:
             
             
             if frame is not None:
-                _, buffer = cv2.imencode(".jpg", frame)
+                frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                _, buffer = cv2.imencode(".jpg", frame_bgr)
                 await self.update_status(StreamStatus.OK)
                 return buffer.tobytes()
             else:
                 await self.update_status(StreamStatus.NO_STREAM)
                 print(f"[StreamHandler] No frames found in the RTSP stream at {self.rtsp_url}")
                 return None
-
         except Exception as e:
             await self.update_status(StreamStatus.NO_CONNECTION)
             print(f"[StreamHandler] Error opening RTSP stream with url {self.rtsp_url}: {e}")
