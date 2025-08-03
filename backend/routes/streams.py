@@ -69,3 +69,21 @@ async def add_stream(stream: StreamModel):
     else:
         return JSONResponse(status_code=406, content={"error": "Illegal characters"}) # 406 Not Acceptable, This response is sent when the web server, after performing server-driven content negotiation, doesn't find any content that conforms to the criteria given by the user agent.
 
+@router.put("/{stream_id}", response_class=JSONResponse)
+async def update_stream(stream_id: str, stream: StreamModel):
+    """
+    Update the details of a specific stream.
+    """
+    stream_handler = streamManager.get_stream(stream_id)
+    if not stream_handler:
+        return JSONResponse(status_code=404, content={"error": "Stream not found"})
+    
+    # Update the stream handler with new values
+    stream_handler.rtsp_url = stream.stream_src
+    print(f"Updating stream {stream_id} with URL: {stream.stream_src} and name: {stream.name}")
+    stream_handler.set_streamID(stream.name)
+    
+    # Save the updated streams
+    streamManager.store_streams()
+    
+    return JSONResponse(status_code=200, content={"success": True})

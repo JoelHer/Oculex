@@ -27,6 +27,10 @@ onMounted(() => {
     fetchStreamData()
         .then(data => {
             streamUrl.value = data.rtsp_url || 'No URL available'
+            if (data.rtsp_url) {
+              props.stream.url = data.rtsp_url
+            }
+
         })
         .catch(error => {
             console.error('Error fetching stream data:', error)
@@ -89,7 +93,7 @@ async function fetchStreamData() {
 
     <div class="editorView">
       <Overview    v-if="view === 'overview'" :stream="props.stream" />
-      <Source      v-else-if="view === 'source'" />
+      <Source      v-else-if="view === 'source'" :stream="props.stream" />
       <Parser      v-else-if="view === 'parser'" :stream="props.stream"/>
       <Ocrengine   v-else-if="view === 'ocrengine'" />
     </div>

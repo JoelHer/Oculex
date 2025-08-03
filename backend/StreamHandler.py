@@ -312,3 +312,6 @@ class StreamHandler:
     
     def set_boxes(self, boxes):
         self.selectionBoxes = boxes
+
+    def set_streamID(self, stream_id):
+        self.id = stream_id
