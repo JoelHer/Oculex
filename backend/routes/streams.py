@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter , HTTPException
 from fastapi.responses import JSONResponse
 import json
 from backend.StreamManager import StreamManager
@@ -88,3 +88,16 @@ async def update_stream(stream_id: str, stream: StreamModel):
     stream_handler.delete_cache()
     
     return JSONResponse(status_code=200, content={"success": True})
+
+
+@router.get("/{stream_id}/ocr")
+async def ocr_stream(stream_id: str):
+    handler = streamManager.get_stream(stream_id)
+    if handler is None:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    
+    try:
+        results = await handler.run_ocr()
+        return {"results": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OCR failed: {e}")

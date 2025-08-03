@@ -95,7 +95,7 @@ async function fetchStreamData() {
       <Overview    v-if="view === 'overview'" :stream="props.stream" />
       <Source      v-else-if="view === 'source'" :stream="props.stream" />
       <Parser      v-else-if="view === 'parser'" :stream="props.stream"/>
-      <Ocrengine   v-else-if="view === 'ocrengine'" />
+      <Ocrengine   v-else-if="view === 'ocrengine'" :stream="props.stream" />
     </div>
   </div>
 </template>

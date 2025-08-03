@@ -96,7 +96,7 @@ onUnmounted(() => {
         />
         <div class="card-footer">
           <span :class="['status-dot', computedStatus]"></span>
-          <span>Last OCR Output • {{ computedAgo }}</span>
+          <span>Last OCR Input Img • {{ computedAgo }}</span>
         </div>
       </div>
 

@@ -10,6 +10,9 @@ import av
 import numpy as np
 import os
 from enum import Enum
+from .ocr.OcrFactory import get_ocr_engine
+import numpy as np
+
 
 class StreamStatus(str, Enum):
     """Enum for stream status."""
@@ -324,6 +327,63 @@ class StreamHandler:
                     "stream_id": self.id,
                     "status": self.status
                 })
+
+
+    async def run_ocr(self):
+        def decode_jpeg_to_array(jpeg_bytes):
+            nparr = np.frombuffer(jpeg_bytes, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if img is None:
+                raise ValueError("Failed to decode JPEG bytes to image")
+            return img
+        try:
+            stitched_jpeg = await self.grab_computed_frame()
+            if stitched_jpeg is None:
+                await self.update_status(StreamStatus.ERROR)
+                raise RuntimeError("Failed to grab computed frame for OCR")
+
+            stitched_img = decode_jpeg_to_array(stitched_jpeg)
+        except Exception as e:
+            await self.update_status(StreamStatus.ERROR)
+            raise RuntimeError(f"Failed to get computed frame for OCR: {e}")
+
+        # Now split stitched image into snippets per selection box
+        try:
+            # Compute widths of each box
+            widths = [box["box_width"] for box in self.selectionBoxes]
+            heights = [box["box_height"] for box in self.selectionBoxes]
+
+            # Since you resized all snippets to same height when stitching,
+            # we use the stitched image height as height for all.
+            height = stitched_img.shape[0]
+
+            snippets = []
+            x_offset = 0
+            for w in widths:
+                snippet = stitched_img[0:height, x_offset:x_offset + w]
+                snippets.append(snippet)
+                x_offset += w
+
+            if not snippets:
+                await self.update_status(StreamStatus.ERROR)
+                raise RuntimeError("No valid boxes after splitting stitched image")
+        except Exception as e:
+            await self.update_status(StreamStatus.ERROR)
+            raise RuntimeError(f"Splitting stitched image failed: {e}")
+
+        # Run OCR as before
+        engine_type = self.processingSettings.get("ocrEngine", "easyocr")
+        ocr_config = self.processingSettings.get("ocrConfig", {})
+        engine = get_ocr_engine(engine_type, ocr_config)
+
+        try:
+            results = engine.recognize(snippets, config=ocr_config)
+        except Exception as e:
+            await self.update_status(StreamStatus.ERROR)
+            raise RuntimeError(f"OCR execution failed: {e}")
+
+        await self.update_status(StreamStatus.OK)
+        return results
 
     def process_frame(self):
         # Return image with overlay
