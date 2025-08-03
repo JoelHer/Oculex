@@ -8,8 +8,8 @@ import { useWebSocket } from './websocket.js'
 
 const currentStreamId = ref(null)
 
-const openStreamEditor = (streamId) => {
-  currentStreamId.value = streamId
+const openStreamEditor = (stream) => {
+  currentStreamId.value = stream
   view.value = 'StreamEditor'
 }
 
@@ -44,7 +44,7 @@ const view = ref('StreamView')
 <template>
   <div class="app">
     <div class="app-container">
-      <StreamEditor v-if="view === 'StreamEditor'" :stream-id="currentStreamId" @close="view = 'StreamView'" />
+      <StreamEditor v-if="view === 'StreamEditor'" :stream="currentStreamId" @close="view = 'StreamView'" />
       <StreamView v-else-if="view === 'StreamView'" @open-stream-editor="openStreamEditor" />
       <transition name="overlay-fade">
         <Overlay v-if="showOverlay" @update:showOverlay="showOverlay = $event">

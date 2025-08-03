@@ -5,9 +5,13 @@ import Ocrengine from './StreamEditor-Components/StreamEditor-ocrengine.vue'
 import Source from './StreamEditor-Components/StreamEditor-source.vue'
 import Parser from './StreamEditor-Components/StreamEditor-parser.vue'
 
+import { EoesStream } from '../models/EoesStream'
+
 const props = defineProps({
-  streamId: String
+  stream: EoesStream
 })
+
+const streamId = ref(props.stream.name)
 
 const views = [
   { id: 'overview',   label: 'Overview' },
@@ -30,9 +34,9 @@ onMounted(() => {
 })
 
 async function fetchStreamData() {
-    console.log('Fetching stream data for:', props.streamId)
+    console.log('Fetching stream data for:', props.stream.name)
     try {
-        const response = await fetch('/streams/' + props.streamId)
+        const response = await fetch('/streams/' + props.stream.name)
         if (response.ok) {
             const data = await response.json()
             return data
@@ -84,9 +88,9 @@ async function fetchStreamData() {
     </div>
 
     <div class="editorView">
-      <Overview    v-if="view === 'overview'" :stream-name="props.streamId" />
+      <Overview    v-if="view === 'overview'" :stream="props.stream" />
       <Source      v-else-if="view === 'source'" />
-      <Parser      v-else-if="view === 'parser'" :stream-name="props.streamId"/>
+      <Parser      v-else-if="view === 'parser'" :stream="props.stream"/>
       <Ocrengine   v-else-if="view === 'ocrengine'" />
     </div>
   </div>

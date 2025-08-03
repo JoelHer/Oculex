@@ -1,6 +1,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted  } from 'vue'
 import StreamEditorImageWithLoader from './StreamEditor-ImageWithLoader.vue'
+
+import { EoesStream } from '../../models/EoesStream.js'
+
 const now = ref(new Date())
 
 let intervalId
@@ -28,8 +31,8 @@ const convertedTimestamp = ref(null)
 const parsedTimestamp = ref(null)
 
 const props = defineProps({
-  streamName: {
-    type: String,
+  stream: {
+    type: EoesStream,
     required: true
   }
 })
@@ -68,7 +71,7 @@ function timeAgo(ts) {
     <div class="parser-grid">
       <div class="stream-box">
         <StreamEditorImageWithLoader 
-          :streamUrl="`/snapshot/${encodeURIComponent(props.streamName)}`"
+          :streamUrl="`/snapshot/${encodeURIComponent(props.stream.name)}`"
           @load="onImageLoad"
           @error="onImageError"
           class="stream-img"
@@ -104,7 +107,7 @@ function timeAgo(ts) {
       <div class="output-box">
         <div class="converted">
           <StreamEditorImageWithLoader 
-            :streamUrl="`/snapshot/${encodeURIComponent(props.streamName)}`"
+            :streamUrl="`/snapshot/${encodeURIComponent(props.stream.name)}`"
             @load="onConvertedLoad"
             @error="() => onImageError('converted')"
             class="output-img"
@@ -122,7 +125,7 @@ function timeAgo(ts) {
 
         <div class="parsed">
           <StreamEditorImageWithLoader 
-            :streamUrl="`/computed/${encodeURIComponent(props.streamName)}`"
+            :streamUrl="`/computed/${encodeURIComponent(props.stream.name)}`"
             @load="onParsedLoad"
             @error="() => onImageError('parsed')"
             class="output-img"

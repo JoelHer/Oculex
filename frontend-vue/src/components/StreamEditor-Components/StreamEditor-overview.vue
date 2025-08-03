@@ -1,13 +1,16 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import StreamEditorImageWithLoader from './StreamEditor-ImageWithLoader.vue'
+
+import { EoesStream } from '../../models/EoesStream.js'
+
 // Dummy reactive values for now
 const streamStatus = ref('Online')
 const lastUpdated = ref('5s ago')
 
 const props = defineProps({
-  streamName: {
-    type: String,
+  stream: {
+    type: EoesStream,
     required: true
   }
 })
@@ -72,7 +75,7 @@ onUnmounted(() => {
     <div class="overview-grid">
       <div class="card">
         <StreamEditorImageWithLoader 
-          :streamUrl="`/snapshotRaw/${encodeURIComponent(props.streamName)}`"
+          :streamUrl="`/snapshotRaw/${encodeURIComponent(props.stream.name)}`"
           @load="onSnapshotLoad"
           @error="onSnapshotError"
           class="card-image"
@@ -86,7 +89,7 @@ onUnmounted(() => {
 
       <div class="card">
         <StreamEditorImageWithLoader 
-          :streamUrl="`/computed/${encodeURIComponent(props.streamName)}`"
+          :streamUrl="`/computed/${encodeURIComponent(props.stream.name)}`"
           @load="onComputedLoad"
           @error="onComputedError"
           class="card-image"
@@ -100,7 +103,7 @@ onUnmounted(() => {
       <div class="card">
         <div class="card-body">
           <h3>Stream Information</h3>
-          <p><strong>Name:</strong> {{ props.streamName }}</p>
+          <p><strong>Name:</strong> {{ props.stream.name }}</p>
           <p><strong>Snapshot Status:</strong> {{ snapshotStatus }}</p>
           <p><strong>Computed Status:</strong> {{ computedStatus }}</p>
           <p><strong>Snapshot Updated:</strong> {{ snapshotAgo }}</p>
