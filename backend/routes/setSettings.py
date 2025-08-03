@@ -42,4 +42,5 @@ def set_settings_by_id(id: str, settings: dict = Body(...)):
         return JSONResponse(content={"error": "Stream not found"}, status_code=404)
     
     stream.set_settings(settings)
+    streamManager.save_stream(stream)
     return JSONResponse(content=stream.get_settings())

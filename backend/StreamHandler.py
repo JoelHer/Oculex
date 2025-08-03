@@ -201,7 +201,7 @@ class StreamHandler:
 
             # Apply contrast & brightness
             if frame is not None:
-                frame = cv2.convertScaleAbs(frame, alpha=self.processingSettings["contrast"], beta=self.processingSettings["brightness"])
+                frame = cv2.convertScaleAbs(frame, alpha=int(self.processingSettings["contrast"]), beta=int(self.processingSettings["brightness"]))
 
             # Apply cropping
             if frame is not None:
@@ -333,7 +333,11 @@ class StreamHandler:
         return self.processingSettings
     
     def set_settings(self, settings):
-        self.processingSettings = settings
+    # Safely update existing settings without overwriting the entire dict
+        if not hasattr(self, 'processingSettings'):
+            self.processingSettings = {}
+        self.processingSettings.update(settings)
+
 
     def get_boxes(self):
         return self.selectionBoxes

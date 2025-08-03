@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import StreamEditorImageWithLoader from './StreamEditor-ImageWithLoader.vue'
 import Overlay from '../Overlay.vue'
 import { EoesStream } from '../../models/EoesStream.js'
@@ -7,6 +7,7 @@ import { EoesStream } from '../../models/EoesStream.js'
 const now = ref(new Date())
 let intervalId
 onMounted(() => {
+  loadSettingsAndBoxes()
   intervalId = setInterval(() => {
     now.value = new Date() // triggers reactive updates
   }, 1000)
@@ -15,10 +16,56 @@ onUnmounted(() => {
   clearInterval(intervalId)
 })
 
-const brightness = ref(100)
-const contrast = ref(-87)
+const brightness = ref(0)
+const contrast = ref(0)
 const saturation = ref(0)
-const rotation = ref(360)
+const rotation = ref(0)
+
+// --- Dirty form state for image settings ---
+const imageSettingsInitial = reactive({
+  brightness: 100,
+  contrast: -87,
+  saturation: 0,
+  rotation: 360
+})
+const imageSettingsDirty = ref(false)
+
+function markImageSettingsDirty() {
+  imageSettingsDirty.value = true
+}
+
+function resetImageSettingsDirty() {
+  imageSettingsDirty.value = false
+  imageSettingsInitial.brightness = brightness.value
+  imageSettingsInitial.contrast = contrast.value
+  imageSettingsInitial.saturation = saturation.value
+  imageSettingsInitial.rotation = rotation.value
+}
+
+function saveImageSettings() {
+  fetch(`/set_settings/${props.stream.name}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      brightness: parseFloat(brightness.value),
+      contrast: parseFloat(contrast.value),
+      saturation: parseFloat(saturation.value),
+      rotation: parseFloat(rotation.value)
+    })
+  }).then(() => {
+    resetImageSettingsDirty()
+  })
+}
+
+// Watch for changes to mark dirty
+watch([brightness, contrast, saturation, rotation], ([b, c, s, r]) => {
+  imageSettingsDirty.value = (
+    b !== imageSettingsInitial.brightness ||
+    c !== imageSettingsInitial.contrast ||
+    s !== imageSettingsInitial.saturation ||
+    r !== imageSettingsInitial.rotation
+  )
+})
 
 // Popup state for region editing
 const showRegionOverlay = ref(false)
@@ -203,7 +250,12 @@ async function loadSettingsAndBoxes() {
       crop_bottom.value = settings.crop_bottom || 0
       crop_left.value = settings.crop_left || 0
       crop_right.value = settings.crop_right || 0
+      brightness.value = settings.brightness || 0
+      contrast.value = settings.contrast || 0
+      saturation.value = settings.saturation || 0
+      rotation.value = settings.rotation || 0
     }
+    resetImageSettingsDirty()
     console.log('Settings loaded:', {
       crop_top: crop_top.value,
       crop_bottom: crop_bottom.value,
@@ -249,18 +301,23 @@ async function saveSettings() {
   })
 }
 </script>
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 <template>
   <div class="parser-settings">
     <h2 class="section-title">Parser Settings</h2>
     <div class="parser-grid">
       <div class="stream-box">
-        <StreamEditorImageWithLoader 
-          :streamUrl="`/snapshot/${encodeURIComponent(props.stream.name)}`"
-          @load="onImageLoad"
-          @error="onImageError"
-          class="stream-img"
-        />
+        <div style="position:relative;">
+          <StreamEditorImageWithLoader 
+            :streamUrl="`/snapshot/${encodeURIComponent(props.stream.name)}?cb=${imageKey}`"
+            @load="onImageLoad"
+            @error="onImageError"
+            class="stream-img"
+            :key="imageKey"
+          />
+          <button class="preview-upper-navbar-right" style="position:absolute;top:10px;right:10px;z-index:2;" @click="reloadImage('preview')">
+            <span class="material-icons">refresh</span>
+          </button>
+        </div>
         <div class="region-section">
           <button class="edit-regions-button" @click="openRegionOverlay">Edit Regions</button>
 
@@ -268,27 +325,46 @@ import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 
         <div class="image-settings">
 
-            <label>Brightness</label>
-            <input type="range" v-model="brightness" min="0" max="200" :value="brightness" />
-
-            <label>Contrast</label>
-            <input type="range" v-model="contrast" min="-100" max="100" :value="contrast" />
-
-            <label>Saturation</label>
-            <input type="range" v-model="saturation" min="-100" max="100" :value="saturation" />
-
-            <label>Rotation</label>
-            <input type="range" v-model="rotation" min="0" max="360" :value="rotation" />
+            <div class="slider-row">
+              <label>Brightness</label>
+              <input type="range" v-model="brightness" min="-100" max="100" />
+              <span class="slider-value">{{ brightness }}</span>
+            </div>
+            <div class="slider-row">
+              <label>Contrast (must not be 0)</label>
+              <input type="range" v-model="contrast" min="-5" max="5" />
+              <span class="slider-value">{{ contrast }}</span>
+            </div>
+            <div class="slider-row">
+              <label>Rotation</label>
+              <input type="range" v-model="rotation" min="0" max="360" />
+              <span class="slider-value">{{ rotation }}</span>
+            </div>
+            <button
+              :class="['image-settings-save-btn', { dirty: imageSettingsDirty }]"
+              @click="saveImageSettings"
+              :disabled="!imageSettingsDirty"
+              style="margin-top:12px;"
+            >
+              <span v-if="imageSettingsDirty">Save (Unsaved)</span>
+              <span v-else>Saved</span>
+            </button>
         </div>
       </div>
       <div class="output-box">
         <div class="converted">
-          <StreamEditorImageWithLoader 
-            :streamUrl="`/snapshot/${encodeURIComponent(props.stream.name)}`"
-            @load="onConvertedLoad"
-            @error="() => onImageError('converted')"
-            class="output-img"
-          />
+          <div style="position:relative;">
+            <StreamEditorImageWithLoader 
+              :streamUrl="`/snapshot/${encodeURIComponent(props.stream.name)}?cb=${imageKey}`"
+              @load="onConvertedLoad"
+              @error="() => onImageError('converted')"
+              class="output-img"
+              :key="imageKey"
+            />
+            <button class="preview-upper-navbar-right" style="position:absolute;top:10px;right:10px;z-index:2;" @click="reloadImage('preview')">
+              <span class="material-icons">refresh</span>
+            </button>
+          </div>
           <div class="status-line">
             <span>
               <span class="status-dot" :class="convertedStatus"></span>
@@ -301,12 +377,18 @@ import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
         </div>
 
         <div class="parsed">
-          <StreamEditorImageWithLoader 
-            :streamUrl="`/computed/${encodeURIComponent(props.stream.name)}`"
-            @load="onParsedLoad"
-            @error="() => onImageError('parsed')"
-            class="output-img"
-          />
+          <div style="position:relative;">
+            <StreamEditorImageWithLoader 
+              :streamUrl="`/computed/${encodeURIComponent(props.stream.name)}?cb=${imagePKey}`"
+              @load="onParsedLoad"
+              @error="() => onImageError('parsed')"
+              class="output-img"
+              :key="imagePKey"
+            />
+            <button class="preview-upper-navbar-right" style="position:absolute;top:10px;right:10px;z-index:2;" @click="reloadImage('processed')">
+              <span class="material-icons">refresh</span>
+            </button>
+          </div>
           <div class="status-line">
             <span>
               <span class="status-dot" :class="parsedStatus"></span>
@@ -351,17 +433,22 @@ import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
                         </div>
                         <div class="preview-upper-content">
                     <div class="preview-container">
-                        <img id="image"
-                             :src="'/snapshot/'+props.stream.name+'?t='+Date.now()"
-                             :key="imageKey"
-                             alt="Responsive Image"
-                             draggable="false"
-                             @load="onRegionImageLoad"
-                             @error="onRegionImageError"
-                             @mousedown="mouseDown"
-                             @mousemove="mouseMove"
-                             @mouseup="mouseUp"
-                        >
+                        <div style="position:relative;">
+                          <img id="image"
+                               :src="`/snapshot/${props.stream.name}?cb=${imageKey}`"
+                               :key="imageKey"
+                               alt="Responsive Image"
+                               draggable="false"
+                               @load="onRegionImageLoad"
+                               @error="onRegionImageError"
+                               @mousedown="mouseDown"
+                               @mousemove="mouseMove"
+                               @mouseup="mouseUp"
+                          >
+                          <button class="preview-upper-navbar-right" style="position:absolute;top:10px;right:10px;z-index:2;" @click="reloadImage('preview')">
+                            <span class="material-icons">refresh</span>
+                          </button>
+                        </div>
                         <div id="selection-box" class="selection-box"></div>
                         <div
                           class="selection-box"
@@ -392,14 +479,19 @@ import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
                         </div>
                         <div class="preview-upper-content">
                     <div class="preview-container">
-                        <img id="image-p"
-                             :src="'/computed/'+props.stream.name+'?t='+Date.now()"
-                             :key="imagePKey"
-                             alt="Responsive Image"
-                             draggable="false"
-                             @load="onRegionImagePLoad"
-                             @error="onRegionImagePError"
-                        >
+                        <div style="position:relative;">
+                          <img id="image-p"
+                               :src="`/computed/${props.stream.name}?cb=${imagePKey}`"
+                               :key="imagePKey"
+                               alt="Responsive Image"
+                               draggable="false"
+                               @load="onRegionImagePLoad"
+                               @error="onRegionImagePError"
+                          >
+                          <button class="preview-upper-navbar-right" style="position:absolute;top:10px;right:10px;z-index:2;" @click="reloadImage('processed')">
+                            <span class="material-icons">refresh</span>
+                          </button>
+                        </div>
                         <div id="spinner-overlay-p" class="spinner-overlay" v-if="showSpinnerP">
                             <div class="spinner"></div>
                         </div>
@@ -597,6 +689,18 @@ import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
   display: grid;
   gap: 10px;
   margin-top: 12px;
+}
+
+.image-settings-save-btn.dirty {
+  background-color: #f25540;
+  color: white;
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 0 8px #f2554044;
+}
+.image-settings-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 input[type="range"] {

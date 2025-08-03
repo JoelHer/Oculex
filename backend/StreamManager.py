@@ -60,6 +60,17 @@ class StreamManager:
         if self.VERBOSE_LOGGING:
             print(f"[StreamManager] Stored {len(self.streams)} streams to {filename}")
 
+    def save_stream(self, stream_handler):
+        """Save a single stream handler's state."""
+        if stream_handler.id in self.streams:
+            self.streams[stream_handler.id] = stream_handler
+            self.store_streams(self.store_location)
+            if self.VERBOSE_LOGGING:
+                print(f"[StreamManager] Saved stream with ID: {stream_handler.id}")
+        else:
+            if self.VERBOSE_LOGGING:
+                print(f"[StreamManager] Stream with ID: {stream_handler.id} not found for saving.")
+
     def load_streams(self, filename):
         """Load streams from the specified file."""
         try:
