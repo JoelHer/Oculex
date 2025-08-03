@@ -161,7 +161,7 @@ class StreamHandler:
                 print(f"[StreamHandler] Error opening RTSP stream with url {self.rtsp_url}: {e}")
                 return None
 
-    async def grab_frame(self, displayBoxes=True):
+    async def grab_frame(self, displayBoxes=True, displayOcrResults=False, ocrResults=None, color=(0, 255, 0)):
         print(f"[StreamHandler, grab_frame] Trying to open the RTSP stream at {self.rtsp_url}")
         print(f"[StreamHandler, grab_frame] Current processing settings: {self.processingSettings}")
         # Ensure processingSettings has default values if empty
@@ -218,15 +218,24 @@ class StreamHandler:
             # Draw self.selectionBoxes on the image
             if frame is not None:
                 if self.selectionBoxes is not None and len(self.selectionBoxes) > 0:
-                    for box in self.selectionBoxes:
-                        box_top = box["box_top"]
-                        box_left = box["box_left"]
-                        box_width = box["box_width"]
-                        box_height = box["box_height"]
-                        color = (0, 255, 0)  # Default color
-                        if displayBoxes:
-                            cv2.rectangle(frame, (box_left, box_top), (box_left + box_width, box_top + box_height), color, 2)
-                            cv2.putText(frame, f'ID: {box["id"]}', (box_left, box_top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                    if displayOcrResults and ocrResults is not None and len(self.selectionBoxes) == len(ocrResults):
+                        for box, result in zip(self.selectionBoxes, ocrResults):
+                            box_top = box["box_top"]
+                            box_left = box["box_left"]
+                            box_width = box["box_width"]
+                            box_height = box["box_height"]
+                            if displayBoxes:
+                                cv2.rectangle(frame, (box_left, box_top), (box_left + box_width, box_top + box_height), color, 2)
+                                cv2.putText(frame, f'"{result["text"]}", {result["confidence"]}%', (box_left, box_top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                    else:
+                        for box in self.selectionBoxes:
+                            box_top = box["box_top"]
+                            box_left = box["box_left"]
+                            box_width = box["box_width"]
+                            box_height = box["box_height"]
+                            if displayBoxes:
+                                cv2.rectangle(frame, (box_left, box_top), (box_left + box_width, box_top + box_height), color, 2)
+                                cv2.putText(frame, f'ID: {box["id"]}', (box_left, box_top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
 
             
@@ -385,6 +394,30 @@ class StreamHandler:
         await self.update_status(StreamStatus.OK)
         return results
 
+    async def show_ocr_results(self, ocrResults, color=(255,0,0)):
+        # Try to get the latest frame with OCR results overlay
+        try:
+            frame_bytes = await self.grab_frame(displayBoxes=True, displayOcrResults=True, ocrResults=ocrResults, color=color)
+            if frame_bytes is None:
+                await self.update_status(StreamStatus.ERROR)
+                return None
+
+            np_frame = np.frombuffer(frame_bytes, np.uint8)
+            image = cv2.imdecode(np_frame, cv2.IMREAD_COLOR)
+            if image is None:
+                await self.update_status(StreamStatus.ERROR)
+                return None
+
+            await self.update_status(StreamStatus.OK)
+            return frame_bytes
+        except Exception as e:
+            await self.update_status(StreamStatus.ERROR)
+            print(f"[StreamHandler] show_ocr_results error: {e}")
+            return None
+        
+
+
+
     def process_frame(self):
         # Return image with overlay
         pass
@@ -407,3 +440,4 @@ class StreamHandler:
 
     def set_streamID(self, stream_id):
         self.id = stream_id
+

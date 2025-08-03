@@ -1,10 +1,11 @@
 from fastapi import APIRouter , HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 import json
 from backend.StreamManager import StreamManager
 from pathlib import Path
 from pydantic import BaseModel
 import re
+import io
 
 router = APIRouter(prefix="/streams")
 
@@ -99,5 +100,21 @@ async def ocr_stream(stream_id: str):
     try:
         results = await handler.run_ocr()
         return {"results": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OCR failed: {e}")
+    
+@router.get("/{stream_id}/ocr-withimage")
+async def ocr_stream(stream_id: str):
+    handler = streamManager.get_stream(stream_id)
+    if handler is None:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    
+    try:
+        results = await handler.run_ocr()
+        frame = await handler.show_ocr_results(results)
+        if frame is None:
+            raise HTTPException(status_code=500, detail="Failed to grab frame from stream")
+        
+        return StreamingResponse(io.BytesIO(frame), media_type="image/jpeg")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OCR failed: {e}")

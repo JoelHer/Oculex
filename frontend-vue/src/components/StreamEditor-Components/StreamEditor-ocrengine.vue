@@ -55,7 +55,7 @@ onUnmounted(() => {
     <div class="overview-grid">
       <div class="card">
         <StreamEditorImageWithLoader 
-          :streamUrl="`/parsed/${encodeURIComponent(props.stream.name)}`"
+          :streamUrl="`/streams/${encodeURIComponent(props.stream.name)}/ocr`"
           @load="onParseImageLoad"
           @error="onParseImageError"
           class="card-image"
