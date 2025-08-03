@@ -204,10 +204,11 @@ async function loadSettingsAndBoxes() {
       crop_left.value = settings.crop_left || 0
       crop_right.value = settings.crop_right || 0
     }
+    
     const boxesRes = await fetch(`/get_boxes/${props.stream.name}`)
     if (boxesRes.ok) {
       const data = await boxesRes.json()
-      boxes.value = (data.boxes || []).map(b => ({
+      boxes.value = (Array.isArray(data) ? data : (data.boxes || [])).map(b => ({
         id: b.id || Date.now(),
         left: b.box_left,
         top: b.box_top,
