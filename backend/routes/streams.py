@@ -85,5 +85,6 @@ async def update_stream(stream_id: str, stream: StreamModel):
     
     # Save the updated streams
     streamManager.store_streams()
+    stream_handler.delete_cache()
     
     return JSONResponse(status_code=200, content={"success": True})

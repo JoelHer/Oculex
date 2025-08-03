@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { EoesStream } from '../../models/EoesStream.js'
+import StreamPreview from '../StreamPreview.vue'
 
 const props = defineProps({
   stream: {
@@ -18,6 +19,16 @@ const saving = ref(false)
 watch(() => props.stream, (newStream) => {
   editedName.value = newStream.name
   editedRtspUrl.value = newStream.url
+})
+
+// Debounce the preview stream source so it doesn't update instantly
+const debouncedStreamSource = ref(editedRtspUrl.value)
+let debounceTimeout
+watch(editedRtspUrl, (val) => {
+  clearTimeout(debounceTimeout)
+  debounceTimeout = setTimeout(() => {
+    debouncedStreamSource.value = val
+  }, 500)
 })
 
 const isDirty = computed(() => {
@@ -62,19 +73,23 @@ async function saveChanges() {
 <template>
   <div class="source-view">
     <h2 class="section-title">Edit Stream Source</h2>
-
-    <div class="form-grid">
-      <div class="form-field">
-        <label for="name">Stream Name</label>
-        <input id="name" v-model="editedName" disabled type="text" placeholder="Enter stream name" />
+    <div class="seperator">
+      <div class="preview-grid">
+        <label class="preview-label">Preview</label>
+        <StreamPreview :streamid="editedName" :previewStreamSource="debouncedStreamSource" preview="true" />
       </div>
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="name">Stream Name</label>
+          <input id="name" v-model="editedName" disabled type="text" placeholder="Enter stream name" />
+        </div>
 
-      <div class="form-field">
-        <label for="rtsp">Source URL</label>
-        <input id="rtsp" v-model="editedRtspUrl" type="text" placeholder="rtsp://..." />
+        <div class="form-field">
+          <label for="rtsp">Source URL</label>
+          <input id="rtsp" v-model="editedRtspUrl" type="text" placeholder="rtsp://..." />
+        </div>
       </div>
     </div>
-
     <button 
       class="save-button" 
       @click="saveChanges"
@@ -86,9 +101,6 @@ async function saveChanges() {
         <span class="text" :class="{ invisible: saving }">Save Changes</span>
       </span>
     </button>
-
-
-
   </div>
 </template>
 
@@ -106,6 +118,7 @@ async function saveChanges() {
 }
 
 .form-grid {
+  grid-area: form-grid;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -184,7 +197,19 @@ input {
 .text {
   transition: opacity 0.2s ease;
 }
+.preview-grid {
+  grid-area: preview-grid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
 
+.preview-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
 .invisible {
   opacity: 0;
 }
@@ -194,6 +219,13 @@ input {
   100% { transform: rotate(360deg); }
 }
 
-
+.seperator {
+  display: grid; 
+  grid-template-columns: 1fr 300px; 
+  grid-template-rows: 1fr; 
+  gap: 0px 0px; 
+  grid-template-areas: 
+    "form-grid preview-grid"; 
+}
 
 </style>

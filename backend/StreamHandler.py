@@ -285,6 +285,13 @@ class StreamHandler:
         await self.update_status(StreamStatus.OK)
         return buffer.tobytes()
         
+    async def delete_cache(self):
+        cache_path = os.path.join(CACHE_DIR, "thumbnails", f"{self.id}.jpg")
+        if os.path.exists(cache_path):
+            os.remove(cache_path)
+            print(f"[StreamHandler] Cache for stream {self.id} deleted.")
+        else:
+            print(f"[StreamHandler] No cache found for stream {self.id}.")
 
     async def update_status(self, new_status):
         if self.status != new_status:
