@@ -88,19 +88,19 @@ async function saveChanges() {
           <label for="rtsp">Source URL</label>
           <input id="rtsp" v-model="editedRtspUrl" type="text" placeholder="rtsp://..." />
         </div>
+        <button 
+          class="save-button" 
+          @click="saveChanges"
+          :disabled="!isDirty || saving"
+          :class="{ 'disabled': !isDirty || saving }"
+        >
+          <span class="button-content">
+            <span class="spinner" v-if="saving"></span>
+            <span class="text" :class="{ invisible: saving }">Save Changes</span>
+          </span>
+        </button>
       </div>
     </div>
-    <button 
-      class="save-button" 
-      @click="saveChanges"
-      :disabled="!isDirty || saving"
-      :class="{ 'disabled': !isDirty || saving }"
-    >
-      <span class="button-content">
-        <span class="spinner" v-if="saving"></span>
-        <span class="text" :class="{ invisible: saving }">Save Changes</span>
-      </span>
-    </button>
   </div>
 </template>
 
