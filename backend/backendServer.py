@@ -33,14 +33,6 @@ async def notify_status_change(stream_id: str, new_status: str):
     for websocket in ws_connections:
         await websocket.send_json(message)
 
-settings = {}
-with open("/data/settings.json", "r") as file:
-    settings = json.load(file)
-
-boxes = {}
-with open("/data/boxes.json", "r") as file:
-    boxes = json.load(file)
-
 streamManager = StreamManager(verbose_logging=True, ws_manager=ws_manager)
 previewStreamManager = StreamManager(verbose_logging=True, ws_manager=ws_manager)
 #streamManager.add_stream("a", "rtsp://admin:herbstnvr@10.250.100.88:554/ch01.264", {"configValue": "12"}, settings, boxes)

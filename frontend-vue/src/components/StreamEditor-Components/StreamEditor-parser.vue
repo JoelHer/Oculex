@@ -114,22 +114,37 @@ const selection = reactive({
     display: 'none',
   }
 })
+// --- True image pixel mapping ---
+const trueImageSize = reactive({ width: 0, height: 0 })
+
+function getScale(img) {
+  // img: HTMLImageElement
+  return {
+    x: img.naturalWidth / img.width,
+    y: img.naturalHeight / img.height
+  }
+}
+
 function mouseDown(e) {
   const img = e.target
   const rect = img.getBoundingClientRect()
+  const scale = getScale(img)
   selection.active = true
-  selection.startX = e.clientX - rect.left
-  selection.startY = e.clientY - rect.top
+  selection.startX = (e.clientX - rect.left) * scale.x
+  selection.startY = (e.clientY - rect.top) * scale.y
   selection.endX = selection.startX
   selection.endY = selection.startY
+  trueImageSize.width = img.naturalWidth
+  trueImageSize.height = img.naturalHeight
   updateSelectionStyle()
 }
 function mouseMove(e) {
   if (!selection.active) return
   const img = e.target
   const rect = img.getBoundingClientRect()
-  selection.endX = Math.max(0, Math.min(e.clientX - rect.left, rect.width))
-  selection.endY = Math.max(0, Math.min(e.clientY - rect.top, rect.height))
+  const scale = getScale(img)
+  selection.endX = Math.max(0, Math.min((e.clientX - rect.left) * scale.x, img.naturalWidth))
+  selection.endY = Math.max(0, Math.min((e.clientY - rect.top) * scale.y, img.naturalHeight))
   updateSelectionStyle()
 }
 function mouseUp(e) {
@@ -137,26 +152,35 @@ function mouseUp(e) {
   updateSelectionStyle()
 }
 function updateSelectionStyle() {
+  // For display, convert true image pixels to displayed image pixels
+  const img = document.getElementById('image')
+  if (!img) return
+  const scale = img.width / img.naturalWidth
   const x = Math.min(selection.startX, selection.endX)
   const y = Math.min(selection.startY, selection.endY)
   const w = Math.abs(selection.endX - selection.startX)
   const h = Math.abs(selection.endY - selection.startY)
-  selection.style.left = x + 'px'
-  selection.style.top = y + 'px'
-  selection.style.width = w + 'px'
-  selection.style.height = h + 'px'
+  selection.style.left = (x * scale) + 'px'
+  selection.style.top = (y * scale) + 'px'
+  selection.style.width = (w * scale) + 'px'
+  selection.style.height = (h * scale) + 'px'
   selection.style.display = w > 0 && h > 0 ? 'block' : 'none'
   coordinates.value = w > 0 && h > 0 ? `x:${Math.round(x)}, y:${Math.round(y)}, w:${Math.round(w)}, h:${Math.round(h)}` : ''
 }
 function addBox() {
   if (selection.style.display === 'block') {
     const newId = Date.now()
+    // Save true image pixel coordinates
+    const x = Math.min(selection.startX, selection.endX)
+    const y = Math.min(selection.startY, selection.endY)
+    const w = Math.abs(selection.endX - selection.startX)
+    const h = Math.abs(selection.endY - selection.startY)
     boxes.value.push({
       id: newId,
-      left: parseInt(selection.style.left),
-      top: parseInt(selection.style.top),
-      width: parseInt(selection.style.width),
-      height: parseInt(selection.style.height)
+      left: Math.round(x),
+      top: Math.round(y),
+      width: Math.round(w),
+      height: Math.round(h)
     })
     selection.style.display = 'none'
     coordinates.value = ''

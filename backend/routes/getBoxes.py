@@ -10,13 +10,6 @@ def configure_routes(stream_manager: StreamManager):
     global streamManager
     streamManager = stream_manager
 
-
-@router.get("/", response_class=JSONResponse)
-def read_root():
-    with open("/data/boxes.json", "r") as file:
-        boxes = json.load(file)
-    return JSONResponse(content=boxes)
-
 @router.get("/{id}", response_class=JSONResponse)
 def get_box_by_id(id: str):
     stream = streamManager.get_stream(id)

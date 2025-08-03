@@ -77,6 +77,19 @@ class StreamHandler:
             file_path = self.rtsp_url[7:]
             print(f"[StreamHandler] Opening file {file_path} instead of RTSP stream")
             
+            # Ensure processingSettings has default values if empty
+            if not self.processingSettings or len(self.processingSettings) == 0:
+                print("[StreamHandler, grab_frame_raw] No processing settings found, using default values")
+                self.processingSettings = {
+                    "rotation": 0,
+                    "contrast": 1.0,
+                    "brightness": 0,
+                    "crop_top": 0,
+                    "crop_bottom": 0,
+                    "crop_left": 0,
+                    "crop_right": 0
+                }
+            
             try:
                 container = av.open(file_path)
                 frame = None
@@ -148,7 +161,8 @@ class StreamHandler:
     async def grab_frame(self, displayBoxes=True):
         print(f"[StreamHandler, grab_frame] Trying to open the RTSP stream at {self.rtsp_url}")
         print(f"[StreamHandler, grab_frame] Current processing settings: {self.processingSettings}")
-        if len(self.processingSettings) == 0:
+        # Ensure processingSettings has default values if empty
+        if not self.processingSettings or len(self.processingSettings) == 0:
             print("[StreamHandler, grab_frame] No processing settings found, using default values")
             self.processingSettings = {
                 "rotation": 0,
@@ -158,8 +172,15 @@ class StreamHandler:
                 "crop_bottom": 0,
                 "crop_left": 0,
                 "crop_right": 0
-
             }
+
+        # make sure that self.processingSettings has all required keys
+        required_keys = ["rotation", "contrast", "brightness", "crop_top", "crop_bottom", "crop_left", "crop_right"]
+        for key in required_keys:
+            if key not in self.processingSettings:
+                print(f"[StreamHandler, grab_frame] Missing processing setting: {key}, using default value")
+                self.processingSettings[key] = 0 if key != "contrast" else 1.0
+
         try:
             # Use av.open with RTSP options
             container = av.open(self.rtsp_url, options={"rtsp_transport": "tcp"})
