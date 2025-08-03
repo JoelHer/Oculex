@@ -204,7 +204,12 @@ async function loadSettingsAndBoxes() {
       crop_left.value = settings.crop_left || 0
       crop_right.value = settings.crop_right || 0
     }
-    
+    console.log('Settings loaded:', {
+      crop_top: crop_top.value,
+      crop_bottom: crop_bottom.value,
+      crop_left: crop_left.value,
+      crop_right: crop_right.value
+    })
     const boxesRes = await fetch(`/get_boxes/${props.stream.name}`)
     if (boxesRes.ok) {
       const data = await boxesRes.json()
@@ -257,24 +262,23 @@ import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
           class="stream-img"
         />
         <div class="region-section">
-          <button class="edit-regions-button" @click="openRegionOverlay">
-          </button>
+          <button class="edit-regions-button" @click="openRegionOverlay">Edit Regions</button>
 
         </div>
 
         <div class="image-settings">
 
-          <label>Brightness</label>
-          <input type="range" v-model="brightness" min="0" max="200" />
+            <label>Brightness</label>
+            <input type="range" v-model="brightness" min="0" max="200" :value="brightness" />
 
-          <label>Contrast</label>
-          <input type="range" v-model="contrast" min="-100" max="100" />
+            <label>Contrast</label>
+            <input type="range" v-model="contrast" min="-100" max="100" :value="contrast" />
 
-          <label>Saturation</label>
-          <input type="range" v-model="saturation" min="-100" max="100" />
+            <label>Saturation</label>
+            <input type="range" v-model="saturation" min="-100" max="100" :value="saturation" />
 
-          <label>Rotation</label>
-          <input type="range" v-model="rotation" min="0" max="360" />
+            <label>Rotation</label>
+            <input type="range" v-model="rotation" min="0" max="360" :value="rotation" />
         </div>
       </div>
       <div class="output-box">
@@ -321,10 +325,10 @@ import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
           <div class="parse-container">
             <div class="parse-container-left">
               <div class="properties">
-                <label>Crop Top: <input type="number" id="crop_top" min="0"></label>
-                <label>Crop Bottom: <input type="number" id="crop_bottom" min="0"></label>
-                <label>Crop Left: <input type="number" id="crop_left" min="0"></label>
-                <label>Crop Right: <input type="number" id="crop_right" min="0"></label>
+                <label>Crop Top: <input type="number" id="crop_top" min="0" v-model="crop_top"></label>
+                <label>Crop Bottom: <input type="number" id="crop_bottom" min="0" v-model="crop_bottom"></label>
+                <label>Crop Left: <input type="number" id="crop_left" min="0" v-model="crop_left"></label>
+                <label>Crop Right: <input type="number" id="crop_right" min="0" v-model="crop_right"></label>
                 <div class="coordinates">{{ coordinates }}</div>
                 <button @click="addBox">Add Box</button>
                 <ul>
@@ -348,7 +352,7 @@ import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
                         <div class="preview-upper-content">
                     <div class="preview-container">
                         <img id="image"
-                             :src="'/snapshot/'+props.stream.name"
+                             :src="'/snapshot/'+props.stream.name+'?t='+Date.now()"
                              :key="imageKey"
                              alt="Responsive Image"
                              draggable="false"
@@ -389,7 +393,7 @@ import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
                         <div class="preview-upper-content">
                     <div class="preview-container">
                         <img id="image-p"
-                             :src="'/computed/'+props.stream.name"
+                             :src="'/computed/'+props.stream.name+'?t='+Date.now()"
                              :key="imagePKey"
                              alt="Responsive Image"
                              draggable="false"
