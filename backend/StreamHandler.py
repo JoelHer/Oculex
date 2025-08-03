@@ -71,7 +71,7 @@ class StreamHandler:
         # Init grabbing, OCR, etc.
 
     async def grab_frame_raw(self):
-        print(f"[StreamHandler] Trying to open the RTSP stream at {self.rtsp_url}")
+        print(f"[StreamHandler, grab_frame_raw] Trying to open the RTSP stream at {self.rtsp_url}")
         
         if self.rtsp_url.startswith("file://"):
             file_path = self.rtsp_url[7:]
@@ -116,14 +116,15 @@ class StreamHandler:
                 frame = None
                 for packet in container.demux(video=0):
                     for frame in packet.decode():
-                        img = frame.to_image()  # Convert frame to PIL Image
-                        frame = np.array(img)   # Convert to NumPy array
+                        img = frame.to_image()           # PIL.Image in RGB
+                        frame = np.array(img)            # NumPy array in RGB
                         break  # Just grab one frame
                     if frame is not None:
                         break
 
                 if frame is not None:
-                    _, buffer = cv2.imencode(".jpg", frame)
+                    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                    _, buffer = cv2.imencode(".jpg", frame_bgr)
                     await self.update_status(StreamStatus.OK)
                     resized_image = create_thumbnail(buffer, noDecode=True)
                     cv2.imwrite(f"{CACHE_DIR}/thumbnails/{self.id}.jpg", resized_image)
@@ -145,7 +146,7 @@ class StreamHandler:
                 return None
 
     async def grab_frame(self, displayBoxes=True):
-        print(f"[StreamHandler] Trying to open the RTSP stream at {self.rtsp_url}")
+        print(f"[StreamHandler, grab_frame] Trying to open the RTSP stream at {self.rtsp_url}")
         try:
             # Use av.open with RTSP options
             container = av.open(self.rtsp_url, options={"rtsp_transport": "tcp"})
