@@ -19,6 +19,8 @@ const parsedText = ref('—')
 const confidence = ref(null)
 const ocrEngine = ref('Tesseract') // Dummy for now
 
+const selectedColor = ref('#00ffff')
+
 let intervalId
 
 function updateAgoLabels() {
@@ -47,6 +49,9 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(intervalId)
 })
+
+
+
 </script>
 
 <template>
@@ -62,7 +67,7 @@ onUnmounted(() => {
           <p><strong>OCR Engine:</strong> {{ ocrEngine }}</p>
           <p><strong>Status:</strong> {{ ocrStatus }}</p>
           <p><strong>Last Updated:</strong> {{ parseAgo }}</p>
-          <ColorPicker />
+          <ColorPicker v-model="selectedColor"/>
         </div>
       </div>
       <div class="card">
