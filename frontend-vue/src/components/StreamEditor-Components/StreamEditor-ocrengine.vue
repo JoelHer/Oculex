@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import StreamEditorImageWithLoader from './StreamEditor-ImageWithLoader.vue'
+import ColorPicker from '../ColorPicker.vue'
 
 import { EoesStream } from '../../models/EoesStream.js'
 
@@ -53,6 +54,17 @@ onUnmounted(() => {
     <h2 class="section-title">OCR</h2>
 
     <div class="overview-grid">
+      <div class="card">
+        <div class="card-body">
+          <h3>OCR Settings</h3>
+          <p><strong>Stream Name:</strong> {{ props.stream.name }}</p>
+          <p><strong>Stream ID:</strong> {{ props.stream.id }}</p>
+          <p><strong>OCR Engine:</strong> {{ ocrEngine }}</p>
+          <p><strong>Status:</strong> {{ ocrStatus }}</p>
+          <p><strong>Last Updated:</strong> {{ parseAgo }}</p>
+          <ColorPicker />
+        </div>
+      </div>
       <div class="card">
         <StreamEditorImageWithLoader 
           :streamUrl="`/streams/${encodeURIComponent(props.stream.name)}/ocr`"

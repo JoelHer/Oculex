@@ -6,6 +6,8 @@ from pathlib import Path
 from pydantic import BaseModel
 import re
 import io
+from typing import Optional
+from fastapi import Query
 
 router = APIRouter(prefix="/streams")
 
@@ -104,14 +106,24 @@ async def ocr_stream(stream_id: str):
         raise HTTPException(status_code=500, detail=f"OCR failed: {e}")
     
 @router.get("/{stream_id}/ocr-withimage")
-async def ocr_stream(stream_id: str):
+async def ocr_stream(
+    stream_id: str,
+    color: Optional[str] = Query(None, description="Optional color for OCR results (e.g., '#FF0000')")
+):
+    
+    #convert hex color to RGB tuple
+    if color:
+        if not re.match(r'^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$', color):
+            raise HTTPException(status_code=400, detail="Invalid color format. Use hex format like '#FF0000'.")
+        color = tuple(int(color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) if len(color) == 7 else tuple(int(color.lstrip('#')[i]*2, 16) for i in (0, 1, 2))
+
     handler = streamManager.get_stream(stream_id)
     if handler is None:
         raise HTTPException(status_code=404, detail="Stream not found")
     
     try:
         results = await handler.run_ocr()
-        frame = await handler.show_ocr_results(results)
+        frame = await handler.show_ocr_results(results, color=color)
         if frame is None:
             raise HTTPException(status_code=500, detail="Failed to grab frame from stream")
         
