@@ -9,10 +9,10 @@ import cv2
 import av
 import numpy as np
 import os
+import time
 from enum import Enum
 from .ocr.OcrFactory import get_ocr_engine
 import numpy as np
-
 
 class StreamStatus(str, Enum):
     """Enum for stream status."""
@@ -293,28 +293,39 @@ class StreamHandler:
         return buffer.tobytes()
 
     async def grab_thumbnail(self):
-        os.makedirs(CACHE_DIR+"/thumbnails/", exist_ok=True)
-        # check if f"/data/cache/thumbnails/{self.id}.jpg" exists, else create the thumbnail and save it
-        if os.path.exists(f"{CACHE_DIR}/thumbnails/{self.id}.jpg"):
-            print(f"[StreamHandler] Thumbnail \"{self.id}.jpg\" already exists, loading from cache instead")
-            thmbnail = cv2.imread(f"{CACHE_DIR}/thumbnails/{self.id}.jpg")
-            _, buffer = cv2.imencode(".jpg", thmbnail)
-            return buffer.tobytes()
+        os.makedirs(f"{CACHE_DIR}/thumbnails/", exist_ok=True)
+        cache_path = f"{CACHE_DIR}/thumbnails/{self.id}.jpg"
+
+        # Check if thumbnail exists
+        if os.path.exists(cache_path):
+            file_age_seconds = time.time() - os.path.getmtime(cache_path)
+            if file_age_seconds > 3600:  # older than 1 hour
+                print(f"[StreamHandler] Thumbnail \"{self.id}.jpg\" is stale, deleting")
+                os.remove(cache_path)
+            else:
+                print(f"[StreamHandler] Thumbnail \"{self.id}.jpg\" already exists, loading from cache instead")
+                thumbnail = cv2.imread(cache_path)
+                _, buffer = cv2.imencode(".jpg", thumbnail)
+                return buffer.tobytes()
+
+        # If we get here, we need to generate a new one
         frame_bytes = await self.grab_frame_raw()
         if frame_bytes is None:
             await self.update_status(StreamStatus.ERROR)
             return None
+
         resized_image = create_thumbnail(frame_bytes, noDecode=True)
         if resized_image is None:
             await self.update_status(StreamStatus.ERROR)
             return None
-        # create /data/cache/thumbnails/ directory if it doesn't exist
-        cv2.imwrite(f"{CACHE_DIR}/thumbnails/{self.id}.jpg", resized_image)
+
+        cv2.imwrite(cache_path, resized_image)
         success, buffer = cv2.imencode(".jpg", resized_image)
         if not success:
             print("[StreamHandler] Failed to encode thumbnail JPEG")
             await self.update_status(StreamStatus.ERROR)
             return None
+
         await self.update_status(StreamStatus.OK)
         return buffer.tobytes()
         
