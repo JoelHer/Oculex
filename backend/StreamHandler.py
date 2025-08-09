@@ -73,7 +73,7 @@ class StreamHandler:
         self.ws_manager = ws_manager
         # Init grabbing, OCR, etc.
 
-    async def grab_frame_raw(self):
+    async def grab_frame_raw(self, generateThumbnail=True):
         print(f"[StreamHandler, grab_frame_raw] Trying to open the RTSP stream at {self.rtsp_url}")
         
         if self.rtsp_url.startswith("file://"):
@@ -115,6 +115,19 @@ class StreamHandler:
                             "stream_id": self.id,
                             "status": self.status
                         })
+                    if generateThumbnail:
+                        resized_image = create_thumbnail(buffer.tobytes(), noDecode=True)
+                        if resized_image is None:
+                            await self.update_status(StreamStatus.ERROR)
+
+                        os.makedirs(f"{CACHE_DIR}/thumbnails/", exist_ok=True)
+                        cache_path = f"{CACHE_DIR}/thumbnails/{self.id}.jpg"
+
+                        cv2.imwrite(cache_path, resized_image)
+                        success, buffer = cv2.imencode(".jpg", resized_image)
+                        if not success:
+                            print("[StreamHandler] Failed to encode thumbnail JPEG")
+                            await self.update_status(StreamStatus.ERROR)
                     return buffer.tobytes()
                 else:
                     await self.update_status(StreamStatus.NO_STREAM)
@@ -150,6 +163,20 @@ class StreamHandler:
                             "stream_id": self.id,
                             "status": self.status
                         })
+
+                    if generateThumbnail:
+                        resized_image = create_thumbnail(buffer.tobytes(), noDecode=True)
+                        if resized_image is None:
+                            await self.update_status(StreamStatus.ERROR)
+
+                        os.makedirs(f"{CACHE_DIR}/thumbnails/", exist_ok=True)
+                        cache_path = f"{CACHE_DIR}/thumbnails/{self.id}.jpg"
+
+                        cv2.imwrite(cache_path, resized_image)
+                        success, buffer = cv2.imencode(".jpg", resized_image)
+                        if not success:
+                            print("[StreamHandler] Failed to encode thumbnail JPEG")
+                            await self.update_status(StreamStatus.ERROR)
                     return buffer.tobytes()
                 else:
                     await self.update_status(StreamStatus.NO_STREAM)
@@ -309,7 +336,7 @@ class StreamHandler:
                 return buffer.tobytes()
 
         # If we get here, we need to generate a new one
-        frame_bytes = await self.grab_frame_raw()
+        frame_bytes = await self.grab_frame_raw(False)
         if frame_bytes is None:
             await self.update_status(StreamStatus.ERROR)
             return None
