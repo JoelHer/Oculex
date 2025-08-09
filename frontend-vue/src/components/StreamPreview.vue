@@ -105,7 +105,7 @@ function handleMessage(event) {
     if (data.stream_id == props.streamid) {
       console.log(props.streamid,'- Received message:', data)
       status.value = data.status
-      afterUrl.value = "?"+Date.now()
+      afterUrl.value = "?t="+Date.now()
     }
   }
 }
@@ -117,6 +117,7 @@ onMounted(() => {
     status.value = 'NO_STREAM'
   } else {
     fetchStreamStatus()
+    afterUrl.value = "?t="+Date.now()
   }
 
   if (socket.value) {
