@@ -225,7 +225,6 @@ const deleteStream = (streamId) => {
   justify-content: left;
   align-items: start;
   flex-wrap: wrap;
-  height: 100%;
   width: 100%;
   padding: 37px;
   gap: 17px;
