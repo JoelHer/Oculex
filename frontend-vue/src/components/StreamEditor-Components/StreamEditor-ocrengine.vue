@@ -19,6 +19,8 @@ const parsedText = ref('—')
 const confidence = ref(null)
 const ocrEngine = ref('Tesseract') // Dummy for now
 
+const imageRevision = ref(null) // Used for cache busting
+
 const selectedColor = ref('#00ffff')
 
 let intervalId
@@ -44,6 +46,7 @@ function onParseImageError() {
 
 onMounted(() => {
   intervalId = setInterval(updateAgoLabels, 1000)
+  imageRevision.value = Date.now() // Initialize to bust cache
 })
 
 onUnmounted(() => {
@@ -62,17 +65,15 @@ onUnmounted(() => {
       <div class="card">
         <div class="card-body">
           <h3>OCR Settings</h3>
-          <p><strong>Stream Name:</strong> {{ props.stream.name }}</p>
-          <p><strong>Stream ID:</strong> {{ props.stream.id }}</p>
           <p><strong>OCR Engine:</strong> {{ ocrEngine }}</p>
+          <p><strong>Highlight Color: </strong><ColorPicker v-model="selectedColor"/></p>
           <p><strong>Status:</strong> {{ ocrStatus }}</p>
           <p><strong>Last Updated:</strong> {{ parseAgo }}</p>
-          <ColorPicker v-model="selectedColor"/>
         </div>
       </div>
       <div class="card">
         <StreamEditorImageWithLoader 
-          :streamUrl="`/streams/${encodeURIComponent(props.stream.name)}/ocr`"
+          :streamUrl="`/streams/${encodeURIComponent(props.stream.name)}/ocr-withimage?t=${imageRevision}`"
           @load="onParseImageLoad"
           @error="onParseImageError"
           class="card-image"
