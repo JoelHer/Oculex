@@ -62,11 +62,12 @@ def create_thumbnail(frame_bytes, target_width=320, target_height=240, noDecode=
 CACHE_DIR = "/data/cache"
 
 class StreamHandler:
-    def __init__(self, stream_id, rtsp_url, config, processingSettings, selectionBoxes, ws_manager=None):
+    def __init__(self, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=None):
         self.id = stream_id
         self.rtsp_url = rtsp_url
         self.config = config
         self.processingSettings = processingSettings
+        self.ocrSettings = ocrSettings
         self.selectionBoxes = selectionBoxes
         self.frame = None
         self.status = StreamStatus.UNKNOWN
@@ -375,7 +376,6 @@ class StreamHandler:
                     "status": self.status
                 })
 
-
     async def run_ocr(self):
         def decode_jpeg_to_array(jpeg_bytes):
             nparr = np.frombuffer(jpeg_bytes, np.uint8)
@@ -452,9 +452,6 @@ class StreamHandler:
             await self.update_status(StreamStatus.ERROR)
             print(f"[StreamHandler] show_ocr_results error: {e}")
             return None
-        
-
-
 
     def process_frame(self):
         # Return image with overlay
@@ -463,12 +460,19 @@ class StreamHandler:
     def get_settings(self):
         return self.processingSettings
     
+    def get_ocrsettings(self):
+        return self.processingSettings
+    
     def set_settings(self, settings):
     # Safely update existing settings without overwriting the entire dict
         if not hasattr(self, 'processingSettings'):
             self.processingSettings = {}
         self.processingSettings.update(settings)
 
+    def set_ocrsettings(self, settings):
+        if not hasattr(self, 'ocrSettings'):
+            self.ocrSettings = {}
+        self.ocrSettings.update(settings)
 
     def get_boxes(self):
         return self.selectionBoxes

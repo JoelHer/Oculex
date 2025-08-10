@@ -1,4 +1,4 @@
-from fastapi import APIRouter , HTTPException
+from fastapi import APIRouter , HTTPException, Body
 from fastapi.responses import JSONResponse, StreamingResponse
 import json
 from backend.StreamManager import StreamManager
@@ -130,3 +130,16 @@ async def ocr_stream(
         return StreamingResponse(io.BytesIO(frame), media_type="image/jpeg")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OCR failed: {e}")
+    
+@router.post("/{id}/ocr-settings", response_class=JSONResponse)
+def set_settings_by_id(id: str, settings: dict = Body(...)):
+    """
+    Set ocr settings by stream ID.
+    """
+    stream = streamManager.get_stream(id)
+    if not stream:
+        return JSONResponse(content={"error": "Stream not found"}, status_code=404)
+    
+    stream.set_ocrsettings(settings)
+    streamManager.save_stream(stream)
+    return JSONResponse(content=stream.get_ocrsettings())

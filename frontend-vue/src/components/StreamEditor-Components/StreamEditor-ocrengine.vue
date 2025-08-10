@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import StreamEditorImageWithLoader from './StreamEditor-ImageWithLoader.vue'
 import ColorPicker from '../ColorPicker.vue'
 
@@ -17,11 +17,24 @@ const parseAgo = ref('—')
 const ocrStatus = ref('loading')
 const parsedText = ref('—')
 const confidence = ref(null)
-const ocrEngine = ref('Tesseract') // Dummy for now
+const ocrEngine = ref('not fetched') // Dummy for now
 
 const imageRevision = ref(null) // Used for cache busting
 
+
 const selectedColor = ref('#00ffff')
+const oSelectedColor = selectedColor.value
+
+const isCleanForm = ref(true)
+
+watch(selectedColor, (nV, oV)=>{
+  if (nV != oSelectedColor) {
+    isCleanForm.value = false
+  }
+  if (nV == oSelectedColor) {
+    isCleanForm.value = true
+  }
+})
 
 let intervalId
 
@@ -53,7 +66,36 @@ onUnmounted(() => {
   clearInterval(intervalId)
 })
 
+async function saveOCRSettings() {
+  try {
+    const response = await fetch(`/streams/${props.stream.name}/ocr-settings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ocr_engine: "EasyOCR",
+        ocr_color: selectedColor.value
+      })
+    })
 
+    if (!response.ok) {
+      throw new Error('Failed to save changes')
+    } else {
+      // Update the stream object with new values so the isDirty computed property updates
+      //props.stream.url = editedRtspUrl.value
+      //props.stream.name = editedName.value
+    }
+
+
+    emit('save', props.stream)
+  } catch (error) {
+    console.error('Error saving changes:', error)
+    alert('Error saving changes:', error) // TODO: better error handling
+  } finally {
+    saving.value = false
+  }
+}
 
 </script>
 
@@ -67,8 +109,7 @@ onUnmounted(() => {
           <h3>OCR Settings</h3>
           <p><strong>OCR Engine:</strong> {{ ocrEngine }}</p>
           <p><strong>Highlight Color: </strong><ColorPicker v-model="selectedColor"/></p>
-          <p><strong>Status:</strong> {{ ocrStatus }}</p>
-          <p><strong>Last Updated:</strong> {{ parseAgo }}</p>
+          <button @click="saveOCRSettings" :disabled="isCleanForm">Save Settings</button>
         </div>
       </div>
       <div class="card">

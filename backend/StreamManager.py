@@ -18,8 +18,8 @@ class StreamManager:
         self.VERBOSE_LOGGING = verbose_logging
         self.store_location = "/data/streams.json"
 
-    def add_stream(self, stream_id, rtsp_url, config, processingSettings, selectionBoxes):
-        self.streams[stream_id] = StreamHandler(stream_id, rtsp_url, config, processingSettings, selectionBoxes, ws_manager=self.ws_manager)
+    def add_stream(self, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes):
+        self.streams[stream_id] = StreamHandler(stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=self.ws_manager)
         if self.VERBOSE_LOGGING:
             print(f"[StreamManager] Added stream with ID: {stream_id}")
 
@@ -53,6 +53,7 @@ class StreamManager:
                 "rtsp_url": handler.rtsp_url,
                 "config": handler.config,
                 "processingSettings": handler.processingSettings,
+                "ocrSettings": handler.ocrSettings,
                 "selectionBoxes": handler.selectionBoxes
             }
         with open(filename, "w") as f:
@@ -80,6 +81,7 @@ class StreamManager:
                 rtsp_url = info.get("rtsp_url", "")
                 config = info.get("config", {})
                 processingSettings = info.get("processingSettings", {})
+                ocrSettings = info.get("ocrSettings", {})
                 selectionBoxes = info.get("selectionBoxes", {})  # maybe old saves don't have this
 
                 self.add_stream(
@@ -87,6 +89,7 @@ class StreamManager:
                     rtsp_url,
                     config,
                     processingSettings,
+                    ocrSettings,
                     selectionBoxes
                 )
             if self.VERBOSE_LOGGING:
