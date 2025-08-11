@@ -11,8 +11,10 @@ import numpy as np
 import os
 import time
 from enum import Enum
+from backend.globalRessources import ocr_worker
 from .ocr.OcrFactory import get_ocr_engine
 import numpy as np
+
 
 class StreamStatus(str, Enum):
     """Enum for stream status."""
@@ -424,7 +426,8 @@ class StreamHandler:
         engine = get_ocr_engine(engine_type, ocr_config)
 
         try:
-            results = engine.recognize(snippets, config=ocr_config)
+            print(f"[StreamHandler, run_ocr] Running OCR with engine: {engine.__class__.__name__}")
+            results = await ocr_worker.submit(engine, snippets, ocr_config)
         except Exception as e:
             await self.update_status(StreamStatus.ERROR)
             raise RuntimeError(f"OCR execution failed: {e}")
