@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, emit } from 'vue'
 import StreamEditorImageWithLoader from './StreamEditor-ImageWithLoader.vue'
 import ColorPicker from '../ColorPicker.vue'
 
@@ -20,10 +20,9 @@ const confidence = ref(null)
 const ocrEngine = ref('not fetched') // Dummy for now
 
 const imageRevision = ref(null) // Used for cache busting
-
-
+const isSaving = ref(false)
 const selectedColor = ref('#00ffff')
-const oSelectedColor = selectedColor.value
+let oSelectedColor = selectedColor.value
 
 const isCleanForm = ref(true)
 
@@ -60,6 +59,16 @@ function onParseImageError() {
 onMounted(() => {
   intervalId = setInterval(updateAgoLabels, 1000)
   imageRevision.value = Date.now() // Initialize to bust cache
+  fetch(`/streams/${props.stream.name}/ocr-settings`)
+    .then(response => response.json())
+    .then(data => {
+      ocrEngine.value = data.ocr_engine || 'EasyOCR'
+      selectedColor.value = data.ocr_color || '#000000'
+      oSelectedColor = selectedColor.value
+    })
+    .catch(error => {
+      console.error('Error fetching OCR settings:', error)
+    })
 })
 
 onUnmounted(() => {
@@ -67,6 +76,7 @@ onUnmounted(() => {
 })
 
 async function saveOCRSettings() {
+  isSaving.value = true
   try {
     const response = await fetch(`/streams/${props.stream.name}/ocr-settings`, {
       method: 'POST',
@@ -85,15 +95,13 @@ async function saveOCRSettings() {
       // Update the stream object with new values so the isDirty computed property updates
       //props.stream.url = editedRtspUrl.value
       //props.stream.name = editedName.value
+      oSelectedColor = selectedColor.value
+      isCleanForm.value = true
     }
-
-
-    emit('save', props.stream)
   } catch (error) {
     console.error('Error saving changes:', error)
-    alert('Error saving changes:', error) // TODO: better error handling
   } finally {
-    saving.value = false
+    isSaving.value = false
   }
 }
 
@@ -109,7 +117,7 @@ async function saveOCRSettings() {
           <h3>OCR Settings</h3>
           <p><strong>OCR Engine:</strong> {{ ocrEngine }}</p>
           <p><strong>Highlight Color: </strong><ColorPicker v-model="selectedColor"/></p>
-          <button @click="saveOCRSettings" :disabled="isCleanForm">Save Settings</button>
+          <button @click="saveOCRSettings" :disabled="isCleanForm || isSaving">Save Settings</button>
         </div>
       </div>
       <div class="card">

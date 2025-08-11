@@ -461,7 +461,7 @@ class StreamHandler:
         return self.processingSettings
     
     def get_ocrsettings(self):
-        return self.processingSettings
+        return self.ocrSettings
     
     def set_settings(self, settings):
     # Safely update existing settings without overwriting the entire dict

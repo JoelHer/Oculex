@@ -107,11 +107,12 @@ async def ocr_stream(stream_id: str):
     
 @router.get("/{stream_id}/ocr-withimage")
 async def ocr_stream(
-    stream_id: str,
-    color: Optional[str] = Query(None, description="Optional color for OCR results (e.g., '#FF0000')")
+    stream_id: str
 ):
     
-    #convert hex color to RGB tuple
+    color = streamManager.get_stream(stream_id).get_ocrsettings().get("ocr_color", "#00ff33")
+    
+
     if color:
         if not re.match(r'^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$', color):
             raise HTTPException(status_code=400, detail="Invalid color format. Use hex format like '#FF0000'.")
@@ -143,3 +144,19 @@ def set_settings_by_id(id: str, settings: dict = Body(...)):
     stream.set_ocrsettings(settings)
     streamManager.save_stream(stream)
     return JSONResponse(content=stream.get_ocrsettings())
+
+@router.get("/{id}/ocr-settings", response_class=JSONResponse)
+def set_settings_by_id(id: str):
+    """
+    Get ocr settings by stream ID.
+    """
+    stream = streamManager.get_stream(id)
+    if not stream:
+        return JSONResponse(content={"error": "Stream not found"}, status_code=404)
+    
+    settings = stream.get_ocrsettings()
+    if not settings:
+        return JSONResponse(content={"error": "No OCR settings found for this stream"}, status_code=404)
+    
+    return JSONResponse(content=settings)
+    
