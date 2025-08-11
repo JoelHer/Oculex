@@ -125,7 +125,7 @@ class StreamHandler:
                         cache_path = f"{CACHE_DIR}/thumbnails/{self.id}.jpg"
 
                         cv2.imwrite(cache_path, resized_image)
-                        success, buffer = cv2.imencode(".jpg", resized_image)
+                        success, tBuffer = cv2.imencode(".jpg", resized_image)
                         if not success:
                             print("[StreamHandler] Failed to encode thumbnail JPEG")
                             await self.update_status(StreamStatus.ERROR)
@@ -174,7 +174,7 @@ class StreamHandler:
                         cache_path = f"{CACHE_DIR}/thumbnails/{self.id}.jpg"
 
                         cv2.imwrite(cache_path, resized_image)
-                        success, buffer = cv2.imencode(".jpg", resized_image)
+                        success, tBuffer = cv2.imencode(".jpg", resized_image)
                         if not success:
                             print("[StreamHandler] Failed to encode thumbnail JPEG")
                             await self.update_status(StreamStatus.ERROR)
