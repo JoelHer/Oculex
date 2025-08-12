@@ -14,7 +14,7 @@ from enum import Enum
 from backend.globalRessources import ocr_worker
 from .ocr.OcrFactory import get_ocr_engine
 import numpy as np
-
+import asyncio
 
 class StreamStatus(str, Enum):
     """Enum for stream status."""
@@ -75,6 +75,22 @@ class StreamHandler:
         self.status = StreamStatus.UNKNOWN
         self.ws_manager = ws_manager
         # Init grabbing, OCR, etc.
+
+    async def _grabFrameFromStream(self, url, options=None):
+        def grab():
+            container = av.open(url, options=options)
+            frame_data = None
+            for packet in container.demux(video=0):
+                for frame in packet.decode():
+                    img = frame.to_image()
+                    frame_data = np.array(img)
+                    break
+                if frame_data is not None:
+                    break
+            return frame_data
+
+        return await asyncio.to_thread(grab)
+
 
     async def grab_frame_raw(self, generateThumbnail=True):
         print(f"[StreamHandler, grab_frame_raw] Trying to open the RTSP stream at {self.rtsp_url}")
@@ -144,16 +160,8 @@ class StreamHandler:
 
         else:
             try:
-                container = av.open(self.rtsp_url, options={"rtsp_transport": "tcp"})
-                frame = None
-                for packet in container.demux(video=0):
-                    for frame in packet.decode():
-                        img = frame.to_image()           # PIL.Image in RGB
-                        frame = np.array(img)            # NumPy array in RGB
-                        break  # Just grab one frame
-                    if frame is not None:
-                        break
-
+                frame = await self._grabFrameFromStream(self.rtsp_url, options={"rtsp_transport": "tcp"})
+            
                 if frame is not None:
                     frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                     _, buffer = cv2.imencode(".jpg", frame_bgr)
@@ -215,16 +223,7 @@ class StreamHandler:
                 self.processingSettings[key] = 0 if key != "contrast" else 1.0
 
         try:
-            # Use av.open with RTSP options
-            container = av.open(self.rtsp_url, options={"rtsp_transport": "tcp"})
-            frame = None
-            for packet in container.demux(video=0):
-                for frame in packet.decode():
-                    img = frame.to_image()  # Convert frame to PIL Image
-                    frame = np.array(img)   # Convert to NumPy array
-                    break  # Just grab one frame
-                if frame is not None:
-                    break
+            frame = await self._grabFrameFromStream(self.rtsp_url, options={"rtsp_transport": "tcp"})
 
             if self.processingSettings["rotation"] != 0 and frame is not None:
                 (h, w) = frame.shape[:2]
