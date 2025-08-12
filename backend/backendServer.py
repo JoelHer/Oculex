@@ -60,8 +60,12 @@ HttpServer.include_router(dashboard.router)
 HttpServer.include_router(streams.router)
 HttpServer.include_router(preview.router)
 
+print(f"Current execution path: {os.getcwd()}")
+
 static_path = os.path.join(os.path.dirname(__file__), "../frontend/static")
 dashboard_build_path = os.path.join(os.path.dirname(__file__), "../frontend/static/www/compiled")
+
+
 if not os.path.exists(static_path):
     raise RuntimeError(f"Directory '{static_path}' does not exist")
 

@@ -27,4 +27,4 @@ COPY . /usr/src/app/
 EXPOSE 5000
 ENV EASYOCR_MODULE_PATH=/data/easyocr-models
 
-CMD ["python", "main.py"]
+CMD ["python", "server.py"]
