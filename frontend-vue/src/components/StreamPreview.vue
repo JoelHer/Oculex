@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, watch, defineEmits  } from 'vue'
+import { ref, onMounted, onBeforeUnmount, onUnmounted, computed, watch, defineEmits  } from 'vue'
 import { useWebSocket } from '../websocket' // shared websocket
 import { Icon } from '@iconify/vue'
 import Overlay from './Overlay.vue'
@@ -26,7 +26,8 @@ const disableOverlayButtons = ref(false)
 const loading = ref(true) 
 const status = ref('UNKNOWN')
 
-const socket = useWebSocket() // use the shared socket
+const { socket, connectionStatus, reconnect } = useWebSocket()
+
 
 const statusColor = computed(() => {
   switch (status.value) {
@@ -98,12 +99,10 @@ function handleMessage(event) {
   const data = JSON.parse(event.data)
   if (data.type == 'stream/status_update'){
     if (data.stream_id == props.streamid) {
-      console.log(props.streamid,'- Received message:', data)
       status.value = data.status
     }
   } else if (data.type == "stream/thumbnail_update") {
     if (data.stream_id == props.streamid) {
-      console.log(props.streamid,'- Received message:', data)
       status.value = data.status
       afterUrl.value = "?t="+Date.now()
     }
@@ -121,17 +120,23 @@ onMounted(() => {
   }
 
   if (socket.value) {
-    socket.value.addEventListener('message', handleMessage)
+    const handler = (event) => {
+      handleMessage(event) // your function
+    }
+    socket.value.addEventListener('message', handler)
+
+    onUnmounted(() => {
+      socket.value.removeEventListener('message', handler)
+    })
   }
 
 })
 
-onBeforeUnmount(() => {
+onUnmounted(() => {
   if (socket.value) {
-    socket.value.removeEventListener('message', handleMessage)
+    socket.value.close()
   }
 })
-
 const closeEditOverlay = () => {
   showEditOverly.value = false
 }
