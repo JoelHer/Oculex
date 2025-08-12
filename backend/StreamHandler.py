@@ -64,6 +64,28 @@ def create_thumbnail(frame_bytes, target_width=320, target_height=240, noDecode=
 CACHE_DIR = "/data/cache"
 
 class StreamHandler:
+    async def routine(self):
+        """Routine to handle stream processing."""
+        print(f"[StreamHandler] Starting routine for stream {self.id}")
+        while True:
+            try:
+                frame = await self.grab_frame_raw()
+                if frame is None:
+                    print(f"[StreamHandler] No frame received for stream {self.id}, updating status to NO_STREAM")
+                    await self.update_status(StreamStatus.NO_STREAM)
+                    await asyncio.sleep(30)
+                    continue
+
+                self.lastFrame = frame
+                self.lastFrameTimestamp = time.time()
+
+            except Exception as e:
+                print(f"[StreamHandler] Error in routine for stream {self.id}: {e}")
+                await self.update_status(StreamStatus.ERROR)
+                break
+
+            await asyncio.sleep(30)
+
     def __init__(self, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=None):
         self.id = stream_id
         self.rtsp_url = rtsp_url
@@ -74,10 +96,22 @@ class StreamHandler:
         self.frame = None
         self.status = StreamStatus.UNKNOWN
         self.ws_manager = ws_manager
-        # Init grabbing, OCR, etc.
+        self.lastFrame = None  
+        self.lastFrameTimestamp = None
 
-    async def _grabFrameFromStream(self, url, options=None):
+    def start_routine(self):
+        # schedule routine without blocking
+        self.routine_task = asyncio.create_task(self.routine())
+
+    async def _grabFrameFromStream(self, url, bustCache=False, options=None): # Cache busting is only used for deleting cached images older than 10 secs
         def grab():
+            if self.lastFrame is not None and self.lastFrameTimestamp is not None and not bustCache:
+                # this only if there is a cached frame and the last frame was grabbed less than 10 seconds ago
+                current_time = time.time()
+                if current_time - self.lastFrameTimestamp < 10 and not bustCache:
+                    print(f"[StreamHandler] Returning cached frame for {url}")
+                    return self.lastFrame
+
             container = av.open(url, options=options)
             frame_data = None
             for packet in container.demux(video=0):
@@ -87,6 +121,8 @@ class StreamHandler:
                     break
                 if frame_data is not None:
                     break
+            self.lastFrame = frame_data
+            self.lastFrameTimestamp = time.time()
             return frame_data
 
         return await asyncio.to_thread(grab)

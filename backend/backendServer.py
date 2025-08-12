@@ -81,3 +81,10 @@ HttpServer.mount("/static", StaticFiles(directory=static_path), name="static")
 # Mount the dashboard build for Vite 
 HttpServer.mount("/dashboard/assets", StaticFiles(directory=os.path.join(dashboard_build_path, "assets")), name="dashboard-assets")
 HttpServer.mount("/dashboard", StaticFiles(directory=dashboard_build_path), name="dashboard-static")
+
+
+@HttpServer.on_event("startup")
+async def startup_event():
+    # Start routines after FastAPI's event loop is running
+    for handler in streamManager.streams.values():
+        handler.start_routine()
