@@ -595,7 +595,7 @@ class StreamHandler:
         return self.ocrSettings
     
     def set_settings(self, settings):
-    # Safely update existing settings without overwriting the entire dict
+        # Safely update existing settings without overwriting the entire dict
         if not hasattr(self, 'processingSettings'):
             self.processingSettings = {}
         self.processingSettings.update(settings)
