@@ -1,5 +1,5 @@
 {
-    "name": "EOeSv3",
+    "name": "Oculex",
     "version": "0.1",
     "slug": "ocr_flask_service",
     "description": "Watermeter reader with http api",
