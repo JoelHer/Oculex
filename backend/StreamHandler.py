@@ -15,6 +15,8 @@ from backend.globalRessources import ocr_worker
 from .ocr.OcrFactory import get_ocr_engine
 import numpy as np
 import asyncio
+import json
+import re
 
 class StreamStatus(str, Enum):
     """Enum for stream status."""
@@ -76,7 +78,7 @@ class StreamHandler:
                     await asyncio.sleep(30)
                     continue
 
-                self.lastFrame = frame
+                self.lastFrame = np.array(frame)
                 self.lastFrameTimestamp = time.time()
 
             except Exception as e:
@@ -96,31 +98,48 @@ class StreamHandler:
         self.frame = None
         self.status = StreamStatus.UNKNOWN
         self.ws_manager = ws_manager
-        self.lastFrame = None  
+        self.lastFrame: np.ndarray = None  
         self.lastFrameTimestamp = None
 
     def start_routine(self):
         # schedule routine without blocking
         self.routine_task = asyncio.create_task(self.routine())
 
-    async def _grabFrameFromStream(self, url, bustCache=False, options=None): # Cache busting is only used for deleting cached images older than 10 secs
+    async def _grabFrameFromStream(self, url, bustCache=False, options=None):
         def grab():
-            if self.lastFrame is not None and self.lastFrameTimestamp is not None and not bustCache:
-                # this only if there is a cached frame and the last frame was grabbed less than 10 seconds ago
+            # Cache check
+            if (
+                self.lastFrame is not None 
+                and self.lastFrameTimestamp is not None 
+                and not bustCache
+            ):
                 current_time = time.time()
-                if current_time - self.lastFrameTimestamp < 10 and not bustCache:
+                if current_time - self.lastFrameTimestamp < 10:
                     print(f"[StreamHandler] Returning cached frame for {url}")
                     return self.lastFrame
 
-            container = av.open(url, options=options)
             frame_data = None
-            for packet in container.demux(video=0):
-                for frame in packet.decode():
-                    img = frame.to_image()
-                    frame_data = np.array(img)
-                    break
-                if frame_data is not None:
-                    break
+
+            # Detect if URL is actually a file (png/jpg), not a stream
+            if os.path.isfile(url) and url.lower().endswith((".png", ".jpg", ".jpeg")):
+                img = cv2.imread(url, cv2.IMREAD_COLOR)
+                if img is None:
+                    raise RuntimeError(f"Failed to load image file: {url}")
+                frame_data = img
+            else:
+                # Normal RTSP/video handling
+                container = av.open(url, options=options)
+                for packet in container.demux(video=0):
+                    for frame in packet.decode():
+                        img = frame.to_image()
+                        frame_data = np.array(img, dtype=np.uint8)  # ensure uint8
+                        break
+                    if frame_data is not None:
+                        break
+
+            if frame_data is None:
+                raise RuntimeError(f"No frame extracted from {url}")
+
             self.lastFrame = frame_data
             self.lastFrameTimestamp = time.time()
             return frame_data
@@ -236,94 +255,97 @@ class StreamHandler:
                 return None
 
     async def grab_frame(self, displayBoxes=True, displayOcrResults=False, ocrResults=None, color=(0, 255, 0)):
-        print(f"[StreamHandler, grab_frame] Trying to open the RTSP stream at {self.rtsp_url}")
-        print(f"[StreamHandler, grab_frame] Current processing settings: {self.processingSettings}")
-        # Ensure processingSettings has default values if empty
-        if not self.processingSettings or len(self.processingSettings) == 0:
-            print("[StreamHandler, grab_frame] No processing settings found, using default values")
-            self.processingSettings = {
-                "rotation": 0,
-                "contrast": 1.0,
-                "brightness": 0,
-                "crop_top": 0,
-                "crop_bottom": 0,
-                "crop_left": 0,
-                "crop_right": 0
-            }
-
-        # make sure that self.processingSettings has all required keys
-        required_keys = ["rotation", "contrast", "brightness", "crop_top", "crop_bottom", "crop_left", "crop_right"]
-        for key in required_keys:
-            if key not in self.processingSettings:
-                print(f"[StreamHandler, grab_frame] Missing processing setting: {key}, using default value")
-                self.processingSettings[key] = 0 if key != "contrast" else 1.0
+        def ensure_ndarray(frame):
+            if isinstance(frame, np.ndarray) and frame.dtype == np.uint8:
+                return frame
+            if isinstance(frame, np.ndarray) and frame.dtype.kind in {'S', 'U'}:
+                frame = frame.tobytes()
+            if isinstance(frame, (bytes, bytearray)):
+                nparr = np.frombuffer(frame, np.uint8)
+                frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if frame is None or not isinstance(frame, np.ndarray):
+                raise ValueError("Failed to convert frame to ndarray")
+            return frame
 
         try:
-            frame = await self._grabFrameFromStream(self.rtsp_url, options={"rtsp_transport": "tcp"})
+            if os.path.isfile(self.rtsp_url) and self.rtsp_url.lower().endswith((".png", ".jpg", ".jpeg")):
+                frame = cv2.imread(self.rtsp_url, cv2.IMREAD_COLOR)
+                if frame is None:
+                    raise RuntimeError(f"Failed to read static image: {self.rtsp_url}")
+            else:
+                frame = await self._grabFrameFromStream(self.rtsp_url, options={"rtsp_transport": "tcp"})
 
-            if self.processingSettings["rotation"] != 0 and frame is not None:
-                (h, w) = frame.shape[:2]
+            if frame is None:
+                await self.update_status(StreamStatus.NO_STREAM)
+                print(f"[StreamHandler] No frames found at {self.rtsp_url}")
+                return None
+            frame = ensure_ndarray(frame)
+
+            print(f"[StreamHandler, grab_frame] Trying to open the RTSP stream at {self.rtsp_url}")
+            print(f"[StreamHandler, grab_frame] Current processing settings: {self.processingSettings}")
+
+            if not self.processingSettings:
+                self.processingSettings = {
+                    "rotation": 0, "contrast": 1.0, "brightness": 0,
+                    "crop_top": 0, "crop_bottom": 0, "crop_left": 0, "crop_right": 0
+                }
+            for key in ["rotation", "contrast", "brightness", "crop_top", "crop_bottom", "crop_left", "crop_right"]:
+                if key not in self.processingSettings:
+                    self.processingSettings[key] = 0 if key != "contrast" else 1.0
+
+            if self.processingSettings["rotation"] != 0:
+                h, w = frame.shape[:2]
                 center = (w // 2, h // 2)
                 matrix = cv2.getRotationMatrix2D(center, self.processingSettings["rotation"], 1.0)
                 frame = cv2.warpAffine(frame, matrix, (w, h))
 
-            # Apply contrast & brightness
-            if frame is not None:
-                frame = cv2.convertScaleAbs(frame, alpha=int(self.processingSettings["contrast"]), beta=int(self.processingSettings["brightness"]))
+            frame = cv2.convertScaleAbs(
+                frame,
+                alpha=float(self.processingSettings.get("contrast", 1.0)),
+                beta=float(self.processingSettings.get("brightness", 0.0))
+            )
 
-            # Apply cropping
-            if frame is not None:
-                h, w, _ = frame.shape
-                top = min(self.processingSettings["crop_top"], h)
-                bottom = max(h - self.processingSettings["crop_bottom"], 0)
-                left = min(self.processingSettings["crop_left"], w)
-                right = max(w - self.processingSettings["crop_right"], 0)
-                frame = frame[top:bottom, left:right]
+            h, w, _ = frame.shape
+            top = min(self.processingSettings["crop_top"], h)
+            bottom = max(h - self.processingSettings["crop_bottom"], 0)
+            left = min(self.processingSettings["crop_left"], w)
+            right = max(w - self.processingSettings["crop_right"], 0)
+            frame = frame[top:bottom, left:right]
 
-            # Draw self.selectionBoxes on the image
-            if frame is not None:
-                if self.selectionBoxes is not None and len(self.selectionBoxes) > 0:
-                    if displayOcrResults and ocrResults is not None and len(self.selectionBoxes) == len(ocrResults):
-                        for box, result in zip(self.selectionBoxes, ocrResults):
-                            box_top = box["box_top"]
-                            box_left = box["box_left"]
-                            box_width = box["box_width"]
-                            box_height = box["box_height"]
-                            if displayBoxes:
-                                cv2.rectangle(frame, (box_left, box_top), (box_left + box_width, box_top + box_height), color, 2)
-                                cv2.putText(frame, f'"{result["text"]}", {result["confidence"]}%', (box_left, box_top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-                    else:
-                        for box in self.selectionBoxes:
-                            box_top = box["box_top"]
-                            box_left = box["box_left"]
-                            box_width = box["box_width"]
-                            box_height = box["box_height"]
-                            if displayBoxes:
-                                cv2.rectangle(frame, (box_left, box_top), (box_left + box_width, box_top + box_height), color, 2)
-                                cv2.putText(frame, f'ID: {box["id"]}', (box_left, box_top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+            if self.selectionBoxes:
+                if displayOcrResults and ocrResults and len(self.selectionBoxes) == len(ocrResults):
+                    for box, result in zip(self.selectionBoxes, ocrResults):
+                        cv2.rectangle(frame, (box["box_left"], box["box_top"]),
+                                    (box["box_left"]+box["box_width"], box["box_top"]+box["box_height"]),
+                                    color, 2)
+                        cv2.putText(frame, f'"{result["text"]}", {result["confidence"]}%',
+                                    (box["box_left"], box["box_top"]-10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                else:
+                    for box in self.selectionBoxes:
+                        cv2.rectangle(frame, (box["box_left"], box["box_top"]),
+                                    (box["box_left"]+box["box_width"], box["box_top"]+box["box_height"]),
+                                    color, 2)
+                        cv2.putText(frame, f'ID: {box["id"]}',
+                                    (box["box_left"], box["box_top"]-10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
+            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            _, buffer = cv2.imencode(".jpg", frame_bgr)
+            await self.update_status(StreamStatus.OK)
+            return buffer.tobytes()
 
-            
-            
-            if frame is not None:
-                frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                _, buffer = cv2.imencode(".jpg", frame_bgr)
-                await self.update_status(StreamStatus.OK)
-                return buffer.tobytes()
-            else:
-                await self.update_status(StreamStatus.NO_STREAM)
-                print(f"[StreamHandler] No frames found in the RTSP stream at {self.rtsp_url}")
-                return None
         except Exception as e:
             await self.update_status(StreamStatus.NO_CONNECTION)
-            print(f"[StreamHandler] Error opening RTSP stream with url {self.rtsp_url}: {e}")
+            print(f"[StreamHandler] Error opening stream {self.rtsp_url}: {e}")
             return None
 
+
     async def grab_computed_frame(self):
-        frame = await self.grab_frame(displayBoxes=False)  # Add 'await' here
+        frame = await self.grab_frame(displayBoxes=False) 
         if frame is None:
             await self.update_status(StreamStatus.ERROR)
-            return "Error: Could not retrieve frame", 500
+            "Error: Could not retrieve frame", 500
 
         np_frame = np.frombuffer(frame, np.uint8)
         image = cv2.imdecode(np_frame, cv2.IMREAD_COLOR)
@@ -426,6 +448,10 @@ class StreamHandler:
                 await self.update_status(StreamStatus.ERROR)
                 raise RuntimeError("Failed to grab computed frame for OCR")
 
+            if type(stitched_jpeg) is tuple:
+                raise RuntimeError(f"Failed to grab computed frame for OCR: {stitched_jpeg[0]}, {stitched_jpeg}")    
+
+
             stitched_img = decode_jpeg_to_array(stitched_jpeg)
         except Exception as e:
             await self.update_status(StreamStatus.ERROR)
@@ -490,6 +516,72 @@ class StreamHandler:
             await self.update_status(StreamStatus.ERROR)
             print(f"[StreamHandler] show_ocr_results error: {e}")
             return None
+
+    def storeOcrResult(self, _results, image_fingerprint="none"):
+        """Parse and store OCR values for the current stream without overwriting others"""
+        filename = "/data/ocr.json"
+
+        fetchedValue = 0.0
+        fetchedTimestamp = 0
+        data = {}
+
+        # Load existing file if present
+        try:
+            with open(filename, "r") as f:
+                data = json.load(f)
+                if self.id in data:
+                    fetchedValue = data[self.id].get("value", 0.0)
+                    fetchedTimestamp = data[self.id].get("timestamp", 0)
+        except FileNotFoundError:
+            print(f"[StreamHandler, storeOcrResult] No previous OCR file found ({filename}). Starting fresh.")
+
+        # Parse results
+        result_text = ""
+        average_conf = 0.0
+        for r in _results:
+            result_text += str(r.get("text", ""))
+            average_conf += float(r.get("confidence", 0.0))
+        if _results:
+            average_conf /= len(_results)
+
+        # Keep only digits and decimal point, ensure only one decimal point
+        numeric_str = re.sub(r"[^0-9.]", "", result_text)
+        numeric_str = re.sub(r"\.(?=.*\.)", "", numeric_str)
+        try:
+            parsed_value = float(numeric_str) if numeric_str else 0.0
+        except ValueError:
+            parsed_value = 0.0
+
+        # Update the current stream’s OCR data
+        data[self.id] = {
+            "value": parsed_value,
+            "confidence": average_conf,
+            "timestamp": int(time.time()),
+            "image-fingerprint": image_fingerprint
+        }
+
+        # Save file back
+        with open(filename, "w") as f:
+            json.dump(data, f, indent=2)
+
+        print(f"[StreamHandler, storeOcrResult] Stored OCR result for stream {self.id}: {parsed_value} (conf {average_conf:.2f})")
+        return data[self.id]
+
+    def getOcrResult(self):
+        filename = "/data/ocr.json"
+        try:
+            with open(filename, "r") as f:
+                data = json.load(f)
+                if self.id in data:
+                    return data[self.id]
+                else:
+                    return {"value": 0.0, "confidence": 0.0, "timestamp": 0}
+        except FileNotFoundError:
+            print(f"[StreamHandler, getOcrResult] No OCR file found ({filename}).")
+            return {"value": 0.0, "confidence": 0.0, "timestamp": 0}
+        except json.JSONDecodeError:
+            print(f"[StreamHandler, getOcrResult] OCR file ({filename}) is corrupted.")
+            return {"value": 0.0, "confidence": 0.0, "timestamp": 0}
 
     def process_frame(self):
         # Return image with overlay
