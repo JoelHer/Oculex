@@ -46,7 +46,7 @@ async function saveChanges() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        name: props.stream.name, // cuurently ot doesnt work to change the name of the stream
+        name: props.stream.name, // currently it doesn't work to change the name of the stream
         stream_src: editedRtspUrl.value
       })
     })
