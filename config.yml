@@ -2,7 +2,7 @@ name: "EOeS-alpha"
 version: "0.1.16"
 slug: "eoes-alpha"
 description: "Watemeter OCR by Herbst"
-url: "https://github.com/JoelHer/hass-eoes"  # Change to your actual URL or remove if local
+url: "https://github.com/JoelHer/Oculex"  # Change to your actual URL or remove if local
 startup: services
 boot: auto
 ports:
