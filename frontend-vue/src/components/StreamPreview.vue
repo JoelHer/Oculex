@@ -265,6 +265,7 @@ const imageUrl = computed(() => {
   overflow: hidden;
   position: relative; 
   border: #23252C solid 1px;
+  cursor: pointer;
 }
 
 .previewImage {
