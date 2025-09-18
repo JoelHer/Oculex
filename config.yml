@@ -1,5 +1,5 @@
 name: "EOeS-alpha"
-version: "0.1.15"
+version: "0.1.16"
 slug: "eoes-alpha"
 description: "Watemeter OCR by Herbst"
 url: "https://github.com/JoelHer/Oculex"  # Change to your actual URL or remove if local
@@ -12,11 +12,12 @@ options:
   rtsp_url: "rtsp://user:password@ip:port/location" 
   debug_mode: false
   ocr_interval: 3600 # Interval in seconds for periodic OCR reading
-
+  liters_per_hour: 10
 schema:
   rtsp_url: "str?"
   debug_mode: "bool"
   ocr_interval: "int?" # Optional integer for OCR interval
+  liters_per_hour: "int" # Optional integer for liters per hour
 
 arch:
   - aarch64
