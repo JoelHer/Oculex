@@ -1,7 +1,8 @@
 import os
 from fastapi import FastAPI, WebSocket
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from backend.routes import getImage, helloworld, interface, getBoxes, setBoxes, getSettings, setSettings, dashboard, streams, preview
+from backend.routes import getImage, helloworld, getBoxes, setBoxes, getSettings, setSettings, dashboard, streams, preview
 import uuid
 from backend.StreamManager import StreamManager
 from backend.WebSocketManager import WebSocketManager
@@ -50,7 +51,6 @@ streams.configure_routes(streamManager)
 preview.configure_routes(previewStreamManager)
 
 HttpServer.include_router(helloworld.router)
-HttpServer.include_router(interface.router)
 HttpServer.include_router(getBoxes.router)
 HttpServer.include_router(setBoxes.router)
 HttpServer.include_router(getSettings.router)
@@ -85,6 +85,12 @@ HttpServer.mount("/static", StaticFiles(directory=static_path), name="static")
 # Mount the dashboard build for Vite 
 HttpServer.mount("/dashboard/assets", StaticFiles(directory=os.path.join(dashboard_build_path, "assets")), name="dashboard-assets")
 HttpServer.mount("/dashboard", StaticFiles(directory=dashboard_build_path), name="dashboard-static")
+
+
+# Redirect root to the dashboard
+@HttpServer.get("/", include_in_schema=False)
+async def root_redirect():
+    return RedirectResponse(url="/dashboard", status_code=302)
 
 
 @HttpServer.on_event("startup")
