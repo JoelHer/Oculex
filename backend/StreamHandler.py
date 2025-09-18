@@ -63,6 +63,18 @@ def create_thumbnail(frame_bytes, target_width=320, target_height=240, noDecode=
     
     return buffer.tobytes()
 
+def ensure_ndarray(frame):
+    if isinstance(frame, np.ndarray) and frame.dtype == np.uint8:
+        return frame
+    if isinstance(frame, np.ndarray) and frame.dtype.kind in {'S', 'U'}:
+        frame = frame.tobytes()
+    if isinstance(frame, (bytes, bytearray)):
+        nparr = np.frombuffer(frame, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if frame is None or not isinstance(frame, np.ndarray):
+        raise ValueError("Failed to convert frame to ndarray")
+    return frame
+
 CACHE_DIR = "/data/cache"
 
 class StreamHandler:
@@ -148,6 +160,7 @@ class StreamHandler:
 
 
     async def grab_frame_raw(self, generateThumbnail=True):
+
         print(f"[StreamHandler, grab_frame_raw] Trying to open the RTSP stream at {self.rtsp_url}")
         
         if self.rtsp_url.startswith("file://"):
@@ -173,6 +186,7 @@ class StreamHandler:
                 for packet in container.demux(video=0):
                     for frame in packet.decode():
                         img = frame.to_image()  # Convert frame to PIL Image
+                        frame = ensure_ndarray(frame)
                         frame = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)  # Convert to NumPy array (BGR)
                         break  # Grab only one frame
                     if frame is not None:
@@ -218,6 +232,7 @@ class StreamHandler:
                 frame = await self._grabFrameFromStream(self.rtsp_url, options={"rtsp_transport": "tcp"})
             
                 if frame is not None:
+                    frame = ensure_ndarray(frame)
                     frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                     _, buffer = cv2.imencode(".jpg", frame_bgr)
                     await self.update_status(StreamStatus.OK)
@@ -255,18 +270,6 @@ class StreamHandler:
                 return None
 
     async def grab_frame(self, displayBoxes=True, displayOcrResults=False, ocrResults=None, color=(0, 255, 0)):
-        def ensure_ndarray(frame):
-            if isinstance(frame, np.ndarray) and frame.dtype == np.uint8:
-                return frame
-            if isinstance(frame, np.ndarray) and frame.dtype.kind in {'S', 'U'}:
-                frame = frame.tobytes()
-            if isinstance(frame, (bytes, bytearray)):
-                nparr = np.frombuffer(frame, np.uint8)
-                frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            if frame is None or not isinstance(frame, np.ndarray):
-                raise ValueError("Failed to convert frame to ndarray")
-            return frame
-
         try:
             if os.path.isfile(self.rtsp_url) and self.rtsp_url.lower().endswith((".png", ".jpg", ".jpeg")):
                 frame = cv2.imread(self.rtsp_url, cv2.IMREAD_COLOR)
