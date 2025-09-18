@@ -457,7 +457,16 @@ class StreamHandler:
             await self.update_status(StreamStatus.ERROR)
             raise RuntimeError(f"Failed to get computed frame for OCR: {e}")
 
-        # Now split stitched image into snippets per selection box
+        # generate fingerprint
+        image_fingerprint = str(hash(stitched_jpeg))
+
+        oldOcrData = self.getOcrResult()
+
+        if oldOcrData.get("aggregate", {}).get("image-fingerprint") == image_fingerprint:
+            print("[StreamHandler, run_ocr] Image fingerprint matches previous OCR run, skipping OCR")
+            await self.update_status(StreamStatus.OK)
+            return oldOcrData
+
         try:
             # Compute widths of each box
             widths = [box["box_width"] for box in self.selectionBoxes]
@@ -494,6 +503,7 @@ class StreamHandler:
             raise RuntimeError(f"OCR execution failed: {e}")
 
         await self.update_status(StreamStatus.OK)
+        self.storeOcrResult(results, image_fingerprint=image_fingerprint)
         return results
 
     async def show_ocr_results(self, ocrResults, color=(255,0,0)):
@@ -518,33 +528,19 @@ class StreamHandler:
             return None
 
     def storeOcrResult(self, _results, image_fingerprint="none"):
-        """Parse and store OCR values for the current stream without overwriting others"""
         filename = "/data/ocr.json"
 
-        fetchedValue = 0.0
-        fetchedTimestamp = 0
         data = {}
-
-        # Load existing file if present
         try:
             with open(filename, "r") as f:
                 data = json.load(f)
-                if self.id in data:
-                    fetchedValue = data[self.id].get("value", 0.0)
-                    fetchedTimestamp = data[self.id].get("timestamp", 0)
         except FileNotFoundError:
             print(f"[StreamHandler, storeOcrResult] No previous OCR file found ({filename}). Starting fresh.")
 
         # Parse results
-        result_text = ""
-        average_conf = 0.0
-        for r in _results:
-            result_text += str(r.get("text", ""))
-            average_conf += float(r.get("confidence", 0.0))
-        if _results:
-            average_conf /= len(_results)
+        result_text = "".join([str(r.get("text", "")) for r in _results])
+        average_conf = sum(float(r.get("confidence", 0.0)) for r in _results) / max(len(_results), 1)
 
-        # Keep only digits and decimal point, ensure only one decimal point
         numeric_str = re.sub(r"[^0-9.]", "", result_text)
         numeric_str = re.sub(r"\.(?=.*\.)", "", numeric_str)
         try:
@@ -552,20 +548,25 @@ class StreamHandler:
         except ValueError:
             parsed_value = 0.0
 
-        # Update the current stream’s OCR data
-        data[self.id] = {
+        aggregate = {
             "value": parsed_value,
             "confidence": average_conf,
             "timestamp": int(time.time()),
             "image-fingerprint": image_fingerprint
         }
 
-        # Save file back
+        # Update storage
+        data[self.id] = {
+            "results": _results,
+            "aggregate": aggregate
+        }
+
         with open(filename, "w") as f:
             json.dump(data, f, indent=2)
 
-        print(f"[StreamHandler, storeOcrResult] Stored OCR result for stream {self.id}: {parsed_value} (conf {average_conf:.2f})")
+        print(f"[StreamHandler, storeOcrResult] Stored OCR for stream {self.id}: {aggregate}")
         return data[self.id]
+
 
     def getOcrResult(self):
         filename = "/data/ocr.json"
