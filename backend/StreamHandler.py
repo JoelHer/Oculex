@@ -145,6 +145,8 @@ class StreamHandler:
                     for frame in packet.decode():
                         img = frame.to_image()
                         frame_data = np.array(img, dtype=np.uint8)  # ensure uint8
+                        # Convert from RGB (PIL format) to BGR (OpenCV format) for consistency
+                        frame_data = cv2.cvtColor(frame_data, cv2.COLOR_RGB2BGR)
                         break
                     if frame_data is not None:
                         break
@@ -233,8 +235,8 @@ class StreamHandler:
             
                 if frame is not None:
                     frame = ensure_ndarray(frame)
-                    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                    _, buffer = cv2.imencode(".jpg", frame_bgr)
+                    # Frame is already in BGR format from _grabFrameFromStream
+                    _, buffer = cv2.imencode(".jpg", frame)
                     await self.update_status(StreamStatus.OK)
                     resized_image = create_thumbnail(buffer, noDecode=True)
                     cv2.imwrite(f"{CACHE_DIR}/thumbnails/{self.id}.jpg", resized_image)
@@ -333,7 +335,7 @@ class StreamHandler:
                                     (box["box_left"], box["box_top"]-10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            frame_bgr = frame  # Frame is already in BGR format
             _, buffer = cv2.imencode(".jpg", frame_bgr)
             await self.update_status(StreamStatus.OK)
             return buffer.tobytes()
