@@ -24,7 +24,7 @@ const addStreamByOverlay = () => {
   const streamSource = newStreamSource.value
 
   if (streamName && streamSource) {
-    let newStream = new EoesStream(streamName, streamSource, StreamStatus.UNKOWN)
+    let newStream = new EoesStream(streamName, streamSource, StreamStatus.UNKNOWN)
     //make a post request to add the stream
     console.log('Adding stream:', streamName, streamSource);
     const response = fetch('/streams/add', {
