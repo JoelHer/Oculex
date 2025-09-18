@@ -45,11 +45,34 @@ function updateAgoLabels() {
   }
 }
 
-function onParseImageLoad() {
-  lastParseUpdate.value = Date.now()
-  ocrStatus.value = 'online'
-  parsedText.value = '123456.78' // Simulated result
-  confidence.value = 93.2
+function onParseImageLoad() {  
+  fetch(`/streams/${props.stream.name}/ocr?t=${Date.now()}`)
+  .then(response => response.json())
+  .then(data => {
+      if (data.results.aggregate) {
+        ocrStatus.value = 'online'
+        parsedText.value = data.results.aggregate.value || null
+        confidence.value = data.results.aggregate.confidence*100 || null
+        lastParseUpdate.value =  data.results.aggregate.timestamp*1000 || null
+      } else {
+
+        if (data.results) {
+          stringedText = ''
+          totalConfidence = 0
+          data.results.forEach(res => {
+            stringedText += res.text || ''
+            totalConfidence += (res.confidence || 0) * 100
+          });
+          confidence.value = totalConfidence / data.results.length || null
+          parsedText.value = stringedText || null
+          lastParseUpdate.value = Date.now()
+          ocrStatus.value = 'online'
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching OCR settings:', error)
+    })
 }
 
 function onParseImageError() {
