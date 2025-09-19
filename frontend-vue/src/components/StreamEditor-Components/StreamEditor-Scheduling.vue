@@ -1,0 +1,411 @@
+<script setup>
+import { ref, reactive, computed, onMounted } from 'vue'
+import { EoesStream } from '../../models/EoesStream.js'
+
+const props = defineProps({
+  stream: {
+    type: EoesStream,
+    required: true
+  }
+})
+const emit = defineEmits(['save'])
+
+// --- reactive form fields ---
+const executionMode = ref('on_api_call') // 'on_api_call' | 'interval' | 'manual'
+const intervalPreset = ref('5') // '1','5','15','60','custom'
+const intervalMinutes = ref(5) // used when preset or custom numeric
+const cronExpression = ref('') // optional custom cron
+const cacheEnabled = ref(true)
+const cacheDuration = ref(60) // numeric
+const cacheDurationUnit = ref('minutes') // 'minutes'|'hours'|'days'
+const maxCachedEntries = ref(null) // optional
+
+const deltaTracking = ref(false)
+const deltaAmount = ref(0)
+const deltaTimespan = ref(60)
+const deltaTimespanUnit = ref('minutes') // 'minutes'|'hours'
+const resetOnPeriod = ref('none') // 'none' | 'daily' | 'weekly'
+
+// advanced
+const preHook = ref('')
+const postHook = ref('')
+const loggingLevel = ref('info') // 'debug'|'info'|'warn'|'error'
+const notifyOnJump = ref(false)
+
+// UI state
+const saving = ref(false)
+const loading = ref(true)
+
+// helper: "now" for next-run display (updates every 30s)
+const now = ref(new Date())
+setInterval(() => now.value = new Date(), 30 * 1000)
+
+// --- initial state for dirty-check ---
+const initialState = reactive({
+  executionMode: executionMode.value,
+  intervalPreset: intervalPreset.value,
+  intervalMinutes: intervalMinutes.value,
+  cronExpression: cronExpression.value,
+  cacheEnabled: cacheEnabled.value,
+  cacheDuration: cacheDuration.value,
+  cacheDurationUnit: cacheDurationUnit.value,
+  maxCachedEntries: maxCachedEntries.value,
+  deltaTracking: deltaTracking.value,
+  deltaAmount: deltaAmount.value,
+  deltaTimespan: deltaTimespan.value,
+  deltaTimespanUnit: deltaTimespanUnit.value,
+  resetOnPeriod: resetOnPeriod.value,
+  preHook: preHook.value,
+  postHook: postHook.value,
+  loggingLevel: loggingLevel.value,
+  notifyOnJump: notifyOnJump.value
+})
+
+const isDirty = computed(() => {
+  return executionMode.value !== initialState.executionMode ||
+    intervalPreset.value !== initialState.intervalPreset ||
+    intervalMinutes.value !== initialState.intervalMinutes ||
+    cronExpression.value !== initialState.cronExpression ||
+    cacheEnabled.value !== initialState.cacheEnabled ||
+    cacheDuration.value !== initialState.cacheDuration ||
+    cacheDurationUnit.value !== initialState.cacheDurationUnit ||
+    (maxCachedEntries.value || null) !== (initialState.maxCachedEntries || null) ||
+    deltaTracking.value !== initialState.deltaTracking ||
+    deltaAmount.value !== initialState.deltaAmount ||
+    deltaTimespan.value !== initialState.deltaTimespan ||
+    deltaTimespanUnit.value !== initialState.deltaTimespanUnit ||
+    resetOnPeriod.value !== initialState.resetOnPeriod ||
+    preHook.value !== initialState.preHook ||
+    postHook.value !== initialState.postHook ||
+    loggingLevel.value !== initialState.loggingLevel ||
+    notifyOnJump.value !== initialState.notifyOnJump
+})
+
+// compute next scheduled run (basic: if interval mode and numeric interval present)
+const nextRun = computed(() => {
+  if (executionMode.value !== 'interval') return ''
+  let mins = parseInt(intervalMinutes.value) || 0
+  if (intervalPreset.value !== 'custom') {
+    mins = parseInt(intervalPreset.value)
+  }
+  if (!mins || mins <= 0) return '—'
+  const d = new Date()
+  d.setMinutes(d.getMinutes() + mins)
+  return d.toLocaleString()
+})
+
+// load existing scheduling config
+async function loadSettings() {
+  loading.value = true
+  try {
+    const res = await fetch(`/get_scheduling/${encodeURIComponent(props.stream.name)}`)
+    if (!res.ok) {
+      // no settings yet — leave defaults
+      loading.value = false
+      return
+    }
+    const cfg = await res.json()
+    // map server fields to local form fields (defensive)
+    executionMode.value = cfg.execution_mode || executionMode.value
+    if (cfg.interval_minutes) {
+      intervalMinutes.value = cfg.interval_minutes
+      intervalPreset.value = ['1','5','15','60'].includes(String(cfg.interval_minutes)) ? String(cfg.interval_minutes) : 'custom'
+    }
+    cronExpression.value = cfg.cron_expression || ''
+    cacheEnabled.value = cfg.cache_enabled ?? cacheEnabled.value
+    cacheDuration.value = cfg.cache_duration ?? cacheDuration.value
+    cacheDurationUnit.value = cfg.cache_duration_unit || cacheDurationUnit.value
+    maxCachedEntries.value = cfg.max_cached_entries ?? null
+
+    deltaTracking.value = cfg.delta_tracking ?? deltaTracking.value
+    deltaAmount.value = cfg.delta_amount ?? deltaAmount.value
+    deltaTimespan.value = cfg.delta_timespan ?? deltaTimespan.value
+    deltaTimespanUnit.value = cfg.delta_timespan_unit || deltaTimespanUnit.value
+    resetOnPeriod.value = cfg.reset_on_period || resetOnPeriod.value
+
+    preHook.value = cfg.pre_hook || ''
+    postHook.value = cfg.post_hook || ''
+    loggingLevel.value = cfg.logging_level || loggingLevel.value
+    notifyOnJump.value = cfg.notify_on_jump ?? notifyOnJump.value
+
+    // set initialState snapshot
+    Object.assign(initialState, {
+      executionMode: executionMode.value,
+      intervalPreset: intervalPreset.value,
+      intervalMinutes: intervalMinutes.value,
+      cronExpression: cronExpression.value,
+      cacheEnabled: cacheEnabled.value,
+      cacheDuration: cacheDuration.value,
+      cacheDurationUnit: cacheDurationUnit.value,
+      maxCachedEntries: maxCachedEntries.value,
+      deltaTracking: deltaTracking.value,
+      deltaAmount: deltaAmount.value,
+      deltaTimespan: deltaTimespan.value,
+      deltaTimespanUnit: deltaTimespanUnit.value,
+      resetOnPeriod: resetOnPeriod.value,
+      preHook: preHook.value,
+      postHook: postHook.value,
+      loggingLevel: loggingLevel.value,
+      notifyOnJump: notifyOnJump.value
+    })
+  } catch (e) {
+    console.error('Failed loading scheduling settings', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadSettings()
+})
+
+// save
+async function saveChanges() {
+  if (!isDirty.value || saving.value) return
+  saving.value = true
+  try {
+    const payload = {
+      execution_mode: executionMode.value,
+      // prefer explicit numeric intervalMinutes
+      interval_minutes: (intervalPreset.value === 'custom') ? parseInt(intervalMinutes.value) : parseInt(intervalPreset.value),
+      cron_expression: cronExpression.value,
+      cache_enabled: cacheEnabled.value,
+      cache_duration: parseInt(cacheDuration.value),
+      cache_duration_unit: cacheDurationUnit.value,
+      delta_tracking: deltaTracking.value,
+      delta_amount: parseFloat(deltaAmount.value),
+      delta_timespan: parseInt(deltaTimespan.value),
+      delta_timespan_unit: deltaTimespanUnit.value,
+    }
+
+    const res = await fetch(`/streams/${encodeURIComponent(props.stream.name)}/scheduling`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    if (!res.ok) throw new Error('Failed saving scheduling')
+
+    // update initial snapshot
+    Object.assign(initialState, {
+      executionMode: executionMode.value,
+      intervalPreset: intervalPreset.value,
+      intervalMinutes: intervalMinutes.value,
+      cronExpression: cronExpression.value,
+      cacheEnabled: cacheEnabled.value,
+      cacheDuration: cacheDuration.value,
+      cacheDurationUnit: cacheDurationUnit.value,
+      deltaTracking: deltaTracking.value,
+      deltaAmount: deltaAmount.value,
+      deltaTimespan: deltaTimespan.value,
+      deltaTimespanUnit: deltaTimespanUnit.value,
+    })
+
+    emit('save', props.stream)
+  } catch (e) {
+    console.error(e)
+    alert('Error saving scheduling settings')
+  } finally {
+    saving.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="scheduling-root">
+    <h2 class="section-title">Scheduling</h2>
+
+    <div class="scheduling-layout">
+      <div class="left-col">
+        <!-- Execution Mode -->
+        <div class="stream-box category-box">
+          <h3 class="category-title">OCR Execution Mode</h3>
+          <div class="category-body">
+            <label class="radio-row">
+              <input type="radio" value="on_api_call" v-model="executionMode" />
+              <span>On every API call</span>
+            </label>
+            <label class="radio-row">
+              <input type="radio" value="interval" v-model="executionMode" />
+              <span>On interval (cron-like)</span>
+            </label>
+            <label class="radio-row">
+              <input type="radio" value="manual" v-model="executionMode" />
+              <span>Manual (button-triggered)</span>
+            </label>
+
+            <div v-if="executionMode === 'interval'" class="interval-block">
+              <label>Interval preset</label>
+              <select v-model="intervalPreset">
+                <option value="1">every 1 min</option>
+                <option value="5">every 5 min</option>
+                <option value="15">every 15 min</option>
+                <option value="60">every 1 hour</option>
+                <option value="custom">custom</option>
+              </select>
+
+              <div v-if="intervalPreset === 'custom'" class="form-field">
+                <label>Custom interval (minutes)</label>
+                <input type="number" v-model="intervalMinutes" min="1" />
+              </div>
+
+              <div class="form-field">
+                <label>Cron expression (optional)</label>
+                <input type="text" v-model="cronExpression" placeholder="e.g. 0 * * * *" />
+              </div>
+
+              <div class="form-field readonly">
+                <label>Next scheduled run</label>
+                <div class="readonly-value">{{ nextRun || '—' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cache Settings -->
+        <div class="stream-box category-box">
+          <h3 class="category-title">OCR Cache</h3>
+          <div class="category-body">
+            <label class="checkbox-row">
+              <input type="checkbox" v-model="cacheEnabled" />
+              <span>Enable cache</span>
+            </label>
+
+            <div v-if="cacheEnabled" class="cache-block">
+              <div class="form-field">
+                <label>Cache duration</label>
+                <div style="display:flex;gap:8px;">
+                  <input type="number" v-model="cacheDuration" min="1" />
+                  <select v-model="cacheDurationUnit">
+                    <option value="minutes">minutes</option>
+                    <option value="hours">hours</option>
+                    <option value="days">days</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delta / Value Change -->
+        <div class="stream-box category-box">
+          <h3 class="category-title">OCR Value Adjustment</h3>
+          <div class="category-body">
+            <label class="checkbox-row">
+              <input type="checkbox" v-model="deltaTracking" />
+              <span>Enable delta tracking</span>
+            </label>
+
+            <div v-if="deltaTracking" class="delta-block">
+              <div class="form-field">
+                <label>Increase amount</label>
+                <input type="number" v-model="deltaAmount" step="any" />
+              </div>
+
+              <div class="form-field">
+                <label>Timespan</label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <input type="number" v-model="deltaTimespan" min="1" />
+                  <select v-model="deltaTimespanUnit">
+                    <option value="minutes">minutes</option>
+                    <option value="hours">hours</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save controls -->
+        <div style="margin-top:10px; display:flex; gap:12px; align-items:center;">
+          <button 
+            class="save-button"
+            @click="saveChanges"
+            :disabled="!isDirty || saving"
+            :class="{ 'disabled': !isDirty || saving }"
+          >
+            <span class="button-content">
+              <span class="spinner" v-if="saving"></span>
+              <span class="text" :class="{ invisible: saving }">Save Changes</span>
+            </span>
+          </button>
+
+          <div v-if="loading" style="color:#aaa; font-size:0.95rem;">Loading…</div>
+          <div v-else style="color:#aaa; font-size:0.95rem;">{{ isDirty ? 'Unsaved changes' : 'Saved' }}</div>
+        </div>
+      </div>
+
+      <!-- right column reserved / empty for now -->
+      <div class="right-col">
+        <!-- empty placeholder - keep layout consistent with other tabs -->
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.scheduling-root { display:flex; flex-direction:column; gap:16px; color:white; }
+.section-title { font-size:1.5rem; font-weight:600; }
+
+/* layout similar to parser */
+.scheduling-layout { display:grid; grid-template-columns: 1fr 300px; gap:20px; align-items:start; }
+.left-col { display:flex; flex-direction:column; gap:12px; }
+.right-col { /* empty placeholder */ }
+
+/* reuse parser-like box styling */
+.stream-box {
+  background: #23252c;
+  padding: 14px;
+  border-radius: 15px;
+  border: 2px solid #2d2f37;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* semantic category class */
+.category-box { padding: 12px 14px; }
+.category-title { color:#40F284; font-size:1.05rem; margin:0; font-weight:700; }
+.category-body { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+
+.radio-row, .checkbox-row { display:flex; align-items:center; gap:8px; color:#ddd; font-size:0.98rem; }
+.form-field { display:flex; flex-direction:column; gap:6px; }
+label { color:#aaa; font-size:0.95rem; }
+input[type="text"], input[type="number"], select {
+  background: #1e1f25;
+  color: white;
+  border: 1px solid #2d2f37;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.98rem;
+}
+
+.readonly { opacity:0.95; }
+.readonly-value { background:#15161a; border-radius:6px; padding:8px; font-size:0.95rem; color:#ccc; border:1px solid #2d2f37; }
+
+.save-button {
+  position: relative;
+  align-self: flex-start;
+  background-color: #40F284;
+  color: black;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 140px;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.save-button.disabled { background-color:#444; color:#999; cursor:not-allowed; }
+.save-button:disabled { pointer-events:none; }
+
+.button-content { position:relative; display:flex; align-items:center; justify-content:center; }
+.spinner { position:absolute; width:16px; height:16px; border:3px solid black; border-top:3px solid transparent; border-radius:50%; animation:spin 0.8s linear infinite; }
+.text { transition: opacity 0.2s ease; }
+.invisible { opacity:0; }
+
+@keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+</style>

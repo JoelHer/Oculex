@@ -4,7 +4,7 @@ import Overview from './StreamEditor-Components/StreamEditor-overview.vue'
 import Ocrengine from './StreamEditor-Components/StreamEditor-ocrengine.vue'
 import Source from './StreamEditor-Components/StreamEditor-source.vue'
 import Parser from './StreamEditor-Components/StreamEditor-parser.vue'
-
+import Scheduling from './StreamEditor-Components/StreamEditor-scheduling.vue'
 import { EoesStream } from '../models/EoesStream'
 
 const props = defineProps({
@@ -18,6 +18,7 @@ const views = [
   { id: 'source',     label: 'Source' },
   { id: 'parser',     label: 'Parser' },
   { id: 'ocrengine',  label: 'OCR Engine' },
+  { id: 'scheduling',  label: 'Scheduling' },
 ]
 
 const streamUrl = ref('Loading URL...')
@@ -96,6 +97,7 @@ async function fetchStreamData() {
       <Source      v-else-if="view === 'source'" :stream="props.stream" />
       <Parser      v-else-if="view === 'parser'" :stream="props.stream"/>
       <Ocrengine   v-else-if="view === 'ocrengine'" :stream="props.stream" />
+      <Scheduling  v-else-if="view === 'scheduling'" :stream="props.stream" @save="$emit('save', $event)"/>
     </div>
   </div>
 </template>
