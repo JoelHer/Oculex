@@ -18,8 +18,8 @@ class StreamManager:
         self.VERBOSE_LOGGING = verbose_logging
         self.store_location = "/data/streams.json"
 
-    def add_stream(self, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes):
-        self.streams[stream_id] = StreamHandler(stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=self.ws_manager)
+    def add_stream(self, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, schedulingSettings):
+        self.streams[stream_id] = StreamHandler(stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=self.ws_manager, schedulingSettings=schedulingSettings)
         if self.VERBOSE_LOGGING:
             print(f"[StreamManager] Added stream with ID: {stream_id}")
         
