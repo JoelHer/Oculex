@@ -100,6 +100,9 @@ class StreamHandler:
 
             await asyncio.sleep(30)
 
+    def OCR_value_changed(old, new):
+        print(f"[StreamHandler] OCR running state changed from {old} to {new}")
+
     def __init__(self, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=None):
         self.id = stream_id
         self.rtsp_url = rtsp_url
@@ -112,6 +115,7 @@ class StreamHandler:
         self.ws_manager = ws_manager
         self.lastFrame: np.ndarray = None  
         self.lastFrameTimestamp = None
+        self.ocrRunning = False
 
     def start_routine(self):
         # schedule routine without blocking
@@ -495,6 +499,13 @@ class StreamHandler:
             await self.update_status(StreamStatus.ERROR)
             raise RuntimeError(f"Splitting stitched image failed: {e}")
 
+        self.ocrRunning = True
+        await self.ws_manager.broadcast({
+            "type": "stream/ocr_status",
+            "stream_id": self.id,
+            "ocr_running": self.ocrRunning
+        })
+        
         # Run OCR as before
         engine_type = self.processingSettings.get("ocrEngine", "easyocr")
         ocr_config = self.processingSettings.get("ocrConfig", {})
@@ -503,11 +514,17 @@ class StreamHandler:
         try:
             print(f"[StreamHandler, run_ocr] Running OCR with engine: {engine.__class__.__name__}")
             results = await ocr_worker.submit(engine, snippets, ocr_config)
+            await self.update_status(StreamStatus.OK)
         except Exception as e:
             await self.update_status(StreamStatus.ERROR)
             raise RuntimeError(f"OCR execution failed: {e}")
 
-        await self.update_status(StreamStatus.OK)
+        self.ocrRunning = False
+        await self.ws_manager.broadcast({
+            "type": "stream/ocr_status",
+            "stream_id": self.id,
+            "ocr_running": self.ocrRunning
+        })
         self.storeOcrResult(results, image_fingerprint=image_fingerprint)
         return results
 

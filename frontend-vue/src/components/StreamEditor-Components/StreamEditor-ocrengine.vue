@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch, emit } from 'vue'
 import StreamEditorImageWithLoader from './StreamEditor-ImageWithLoader.vue'
 import ColorPicker from '../ColorPicker.vue'
+import { useWebSocket } from '../../websocket'
 
 import { EoesStream } from '../../models/EoesStream.js'
 
@@ -19,12 +20,16 @@ const parsedText = ref('—')
 const confidence = ref(null)
 const ocrEngine = ref('not fetched') // Dummy for now
 
+const ocrRunning = ref(false)
+
 const imageRevision = ref(null) // Used for cache busting
 const isSaving = ref(false)
 const selectedColor = ref('#00ffff')
 let oSelectedColor = selectedColor.value
 
 const isCleanForm = ref(true)
+
+const { socket, connectionStatus, reconnect } = useWebSocket()
 
 watch(selectedColor, (nV, oV)=>{
   if (nV != oSelectedColor) {
@@ -79,6 +84,16 @@ function onParseImageError() {
   ocrStatus.value = 'error'
 }
 
+function handleMessage(event) {
+  const data = JSON.parse(event.data)
+  if (data.type == 'stream/ocr_status') {
+    if (data.stream_id == props.streamid) {
+      ocrStatus.value = data.ocr_running ? 'Running' : 'nothing'
+      ocrRunning.value = data.ocr_running
+    }
+  }
+}
+
 onMounted(() => {
   intervalId = setInterval(updateAgoLabels, 1000)
   imageRevision.value = Date.now() // Initialize to bust cache
@@ -92,6 +107,33 @@ onMounted(() => {
     .catch(error => {
       console.error('Error fetching OCR settings:', error)
     })
+
+  fetch(`/streams/${props.stream.name}?t=${Date.now()}`)
+    .then(response => response.json())
+    .then(data => {
+      ocrRunning.value = data.ocrRunning
+      console.log("Fetched initial OCR running state:", ocrRunning.value)
+    })
+    .catch(error => {
+      console.error('Error fetching stream status:', error)
+    })
+
+  if (socket.value) {
+    const handler = (event) => {
+      handleMessage(event) // your function
+    }
+    socket.value.addEventListener('message', handler)
+
+    onUnmounted(() => {
+      socket.value.removeEventListener('message', handler)
+    })
+  }
+})
+
+onUnmounted(() => {
+  if (socket.value) {
+    socket.value.close()
+  }
 })
 
 onUnmounted(() => {

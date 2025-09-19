@@ -38,6 +38,7 @@ async def get_stream(stream_id: str):
         "processingSettings": stream_handler.processingSettings,
         "selectionBoxes": stream_handler.selectionBoxes,
         "status": stream_handler.status,
+        "ocrRunning": stream_handler.ocrRunning,
     }
     
     return JSONResponse(content=stream_info)
