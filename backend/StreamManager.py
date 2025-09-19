@@ -55,7 +55,8 @@ class StreamManager:
                 "config": handler.config,
                 "processingSettings": handler.processingSettings,
                 "ocrSettings": handler.ocrSettings,
-                "selectionBoxes": handler.selectionBoxes
+                "selectionBoxes": handler.selectionBoxes,
+                "schedulingSettings": handler.schedulingSettings,
             }
         with open(filename, "w") as f:
             json.dump(data, f, indent=4)
@@ -84,6 +85,17 @@ class StreamManager:
                 processingSettings = info.get("processingSettings", {})
                 ocrSettings = info.get("ocrSettings", {})
                 selectionBoxes = info.get("selectionBoxes", {})  # maybe old saves don't have this
+                schedulingSettings = info.get("schedulingSettings", {
+                    "cache_enabled": False,
+                    "cache_duration": 10,
+                    "cache_duration_unit": "minutes",
+                    "max_cached_entries": None,
+                    "delta_tracking": False,
+                    "delta_amount": 0.0,
+                    "delta_timespan": 0,
+                    "delta_timespan_unit": "seconds",
+                    "reset_on_period": "none",
+                })
 
                 self.add_stream(
                     stream_id,
@@ -91,7 +103,8 @@ class StreamManager:
                     config,
                     processingSettings,
                     ocrSettings,
-                    selectionBoxes
+                    selectionBoxes,
+                    schedulingSettings=schedulingSettings
                 )
             if self.VERBOSE_LOGGING:
                 print(f"[StreamManager] Loaded {len(data)} streams from {filename}")

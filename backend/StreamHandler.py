@@ -103,7 +103,7 @@ class StreamHandler:
     def OCR_value_changed(old, new):
         print(f"[StreamHandler] OCR running state changed from {old} to {new}")
 
-    def __init__(self, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=None):
+    def __init__(self, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=None, schedulingSettings=None):
         self.id = stream_id
         self.rtsp_url = rtsp_url
         self.config = config
@@ -116,6 +116,22 @@ class StreamHandler:
         self.lastFrame: np.ndarray = None  
         self.lastFrameTimestamp = None
         self.ocrRunning = False
+        if schedulingSettings:
+            self.schedulingSettings = schedulingSettings
+        else:
+            self.schedulingSettings = {
+                "executionMode": "on_api_call",
+                "intervalPreset": "5",
+                "intervalMinutes": 5,
+                "cronExpression": "",
+                "cacheEnabled": True,
+                "cacheDuration": 60,
+                "cacheDurationUnit": "minutes",
+                "deltaTracking": False,
+                "deltaAmount": 0,
+                "deltaTimespan": 60,
+                "deltaTimespanUnit": "minutes",
+            }
 
     def start_routine(self):
         # schedule routine without blocking
@@ -505,7 +521,7 @@ class StreamHandler:
             "stream_id": self.id,
             "ocr_running": self.ocrRunning
         })
-        
+
         # Run OCR as before
         engine_type = self.processingSettings.get("ocrEngine", "easyocr")
         ocr_config = self.processingSettings.get("ocrConfig", {})
