@@ -49,16 +49,10 @@ const initialState = reactive({
   cacheEnabled: cacheEnabled.value,
   cacheDuration: cacheDuration.value,
   cacheDurationUnit: cacheDurationUnit.value,
-  maxCachedEntries: maxCachedEntries.value,
   deltaTracking: deltaTracking.value,
   deltaAmount: deltaAmount.value,
   deltaTimespan: deltaTimespan.value,
   deltaTimespanUnit: deltaTimespanUnit.value,
-  resetOnPeriod: resetOnPeriod.value,
-  preHook: preHook.value,
-  postHook: postHook.value,
-  loggingLevel: loggingLevel.value,
-  notifyOnJump: notifyOnJump.value
 })
 
 const isDirty = computed(() => {
@@ -69,16 +63,10 @@ const isDirty = computed(() => {
     cacheEnabled.value !== initialState.cacheEnabled ||
     cacheDuration.value !== initialState.cacheDuration ||
     cacheDurationUnit.value !== initialState.cacheDurationUnit ||
-    (maxCachedEntries.value || null) !== (initialState.maxCachedEntries || null) ||
     deltaTracking.value !== initialState.deltaTracking ||
     deltaAmount.value !== initialState.deltaAmount ||
     deltaTimespan.value !== initialState.deltaTimespan ||
-    deltaTimespanUnit.value !== initialState.deltaTimespanUnit ||
-    resetOnPeriod.value !== initialState.resetOnPeriod ||
-    preHook.value !== initialState.preHook ||
-    postHook.value !== initialState.postHook ||
-    loggingLevel.value !== initialState.loggingLevel ||
-    notifyOnJump.value !== initialState.notifyOnJump
+    deltaTimespanUnit.value !== initialState.deltaTimespanUnit
 })
 
 // compute next scheduled run (basic: if interval mode and numeric interval present)
@@ -98,7 +86,7 @@ const nextRun = computed(() => {
 async function loadSettings() {
   loading.value = true
   try {
-    const res = await fetch(`/get_scheduling/${encodeURIComponent(props.stream.name)}`)
+    const res = await fetch(`/streams/${encodeURIComponent(props.stream.name)}/scheduling-settings`)
     if (!res.ok) {
       // no settings yet — leave defaults
       loading.value = false
@@ -115,18 +103,11 @@ async function loadSettings() {
     cacheEnabled.value = cfg.cache_enabled ?? cacheEnabled.value
     cacheDuration.value = cfg.cache_duration ?? cacheDuration.value
     cacheDurationUnit.value = cfg.cache_duration_unit || cacheDurationUnit.value
-    maxCachedEntries.value = cfg.max_cached_entries ?? null
 
     deltaTracking.value = cfg.delta_tracking ?? deltaTracking.value
     deltaAmount.value = cfg.delta_amount ?? deltaAmount.value
     deltaTimespan.value = cfg.delta_timespan ?? deltaTimespan.value
     deltaTimespanUnit.value = cfg.delta_timespan_unit || deltaTimespanUnit.value
-    resetOnPeriod.value = cfg.reset_on_period || resetOnPeriod.value
-
-    preHook.value = cfg.pre_hook || ''
-    postHook.value = cfg.post_hook || ''
-    loggingLevel.value = cfg.logging_level || loggingLevel.value
-    notifyOnJump.value = cfg.notify_on_jump ?? notifyOnJump.value
 
     // set initialState snapshot
     Object.assign(initialState, {
@@ -137,16 +118,10 @@ async function loadSettings() {
       cacheEnabled: cacheEnabled.value,
       cacheDuration: cacheDuration.value,
       cacheDurationUnit: cacheDurationUnit.value,
-      maxCachedEntries: maxCachedEntries.value,
       deltaTracking: deltaTracking.value,
       deltaAmount: deltaAmount.value,
       deltaTimespan: deltaTimespan.value,
       deltaTimespanUnit: deltaTimespanUnit.value,
-      resetOnPeriod: resetOnPeriod.value,
-      preHook: preHook.value,
-      postHook: postHook.value,
-      loggingLevel: loggingLevel.value,
-      notifyOnJump: notifyOnJump.value
     })
   } catch (e) {
     console.error('Failed loading scheduling settings', e)
@@ -178,8 +153,8 @@ async function saveChanges() {
       delta_timespan_unit: deltaTimespanUnit.value,
     }
 
-    const res = await fetch(`/streams/${encodeURIComponent(props.stream.name)}/scheduling`, {
-      method: 'PUT',
+    const res = await fetch(`/streams/${encodeURIComponent(props.stream.name)}/scheduling-settings`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })

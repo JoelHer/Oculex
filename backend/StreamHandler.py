@@ -652,3 +652,10 @@ class StreamHandler:
     def set_streamID(self, stream_id):
         self.id = stream_id
 
+    def get_scheduling_settings(self):
+        return self.schedulingSettings
+
+    def set_scheduling_settings(self, settings):
+        if not hasattr(self, 'schedulingSettings'):
+            self.schedulingSettings = {}
+        self.schedulingSettings.update(settings)

@@ -160,4 +160,31 @@ def set_settings_by_id(id: str):
         return JSONResponse(content={"error": "No OCR settings found for this stream"}, status_code=404)
     
     return JSONResponse(content=settings)
-    
+
+@router.get("/{stream_id}/scheduling-settings", response_class=JSONResponse)
+def get_scheduling_settings(stream_id: str):
+    """
+    Get scheduling settings by stream ID.
+    """
+    stream = streamManager.get_stream(stream_id)
+    if not stream:
+        return JSONResponse(content={"error": "Stream not found"}, status_code=404)
+
+    settings = stream.get_scheduling_settings()
+    if not settings:
+        return JSONResponse(content={"error": "No scheduling settings found for this stream"}, status_code=404)
+
+    return JSONResponse(content=settings)
+
+@router.post("/{stream_id}/scheduling-settings", response_class=JSONResponse)
+def set_scheduling_settings(stream_id: str, settings: dict = Body(...)):
+    """
+    Set scheduling settings by stream ID.
+    """
+    stream = streamManager.get_stream(stream_id)
+    if not stream:
+        return JSONResponse(content={"error": "Stream not found"}, status_code=404)
+
+    stream.set_scheduling_settings(settings)
+    streamManager.save_stream(stream)
+    return JSONResponse(content=stream.get_scheduling_settings())
