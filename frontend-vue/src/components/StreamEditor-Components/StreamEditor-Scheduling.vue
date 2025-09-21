@@ -26,6 +26,8 @@ const deltaTimespan = ref(60)
 const deltaTimespanUnit = ref('minutes') // 'minutes'|'hours'
 const resetOnPeriod = ref('none') // 'none' | 'daily' | 'weekly'
 
+const allowDecreasingValues = ref(false) // new field to allow decreasing values
+
 // advanced
 const preHook = ref('')
 const postHook = ref('')
@@ -53,6 +55,7 @@ const initialState = reactive({
   deltaAmount: deltaAmount.value,
   deltaTimespan: deltaTimespan.value,
   deltaTimespanUnit: deltaTimespanUnit.value,
+  allowDecreasingValues: allowDecreasingValues.value,
 })
 
 const isDirty = computed(() => {
@@ -66,7 +69,8 @@ const isDirty = computed(() => {
     deltaTracking.value !== initialState.deltaTracking ||
     deltaAmount.value !== initialState.deltaAmount ||
     deltaTimespan.value !== initialState.deltaTimespan ||
-    deltaTimespanUnit.value !== initialState.deltaTimespanUnit
+    deltaTimespanUnit.value !== initialState.deltaTimespanUnit ||
+    allowDecreasingValues.value !== initialState.allowDecreasingValues
 })
 
 // compute next scheduled run (basic: if interval mode and numeric interval present)
@@ -108,6 +112,7 @@ async function loadSettings() {
     deltaAmount.value = cfg.delta_amount ?? deltaAmount.value
     deltaTimespan.value = cfg.delta_timespan ?? deltaTimespan.value
     deltaTimespanUnit.value = cfg.delta_timespan_unit || deltaTimespanUnit.value
+    allowDecreasingValues.value = cfg.allow_decreasing_values ?? allowDecreasingValues.value
 
     // set initialState snapshot
     Object.assign(initialState, {
@@ -122,6 +127,7 @@ async function loadSettings() {
       deltaAmount: deltaAmount.value,
       deltaTimespan: deltaTimespan.value,
       deltaTimespanUnit: deltaTimespanUnit.value,
+      allowDecreasingValues: allowDecreasingValues.value,
     })
   } catch (e) {
     console.error('Failed loading scheduling settings', e)
@@ -151,6 +157,7 @@ async function saveChanges() {
       delta_amount: parseFloat(deltaAmount.value),
       delta_timespan: parseInt(deltaTimespan.value),
       delta_timespan_unit: deltaTimespanUnit.value,
+      allow_decreasing_values: allowDecreasingValues.value,
     }
 
     const res = await fetch(`/streams/${encodeURIComponent(props.stream.name)}/scheduling-settings`, {
@@ -173,6 +180,7 @@ async function saveChanges() {
       deltaAmount: deltaAmount.value,
       deltaTimespan: deltaTimespan.value,
       deltaTimespanUnit: deltaTimespanUnit.value,
+      allowDecreasingValues: allowDecreasingValues.value,
     })
 
     emit('save', props.stream)
@@ -265,6 +273,11 @@ async function saveChanges() {
         <div class="stream-box category-box">
           <h3 class="category-title">OCR Value Adjustment</h3>
           <div class="category-body">
+            <label class="checkbox-row">
+              <input type="checkbox" v-model="allowDecreasingValues" />
+              <span>Allow decreasing values</span>
+            </label>
+
             <label class="checkbox-row">
               <input type="checkbox" v-model="deltaTracking" />
               <span>Enable delta tracking</span>

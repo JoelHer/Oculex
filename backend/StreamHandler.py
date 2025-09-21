@@ -608,6 +608,14 @@ class StreamHandler:
             "aggregate": aggregate
         }
 
+        if not self.schedulingSettings.get("allow_decreasing_values", False):
+            old_val = self.getOcrResult().get("aggregate", {}).get("value", None)
+            if old_val is not None and old_val > aggregate["value"]:
+                print(f"[StreamHandler, storeOcrResult, AD] Decreasing value not allowed for stream {self.id}: {aggregate}; reverting to old value {old_val}")
+                return self.getOcrResult()
+            else:
+                print(f"[StreamHandler, storeOcrResult, AD_a] Value accepted for stream {self.id}: {aggregate}; new value {aggregate['value']} >= old value {old_val if old_val is not None else 'N/A'}")
+
         if self.schedulingSettings.get("delta_tracking", False):
             if delta_tracking_allows:
                 with open(filename, "w") as f:
@@ -621,6 +629,7 @@ class StreamHandler:
             with open(filename, "w") as f:
                 json.dump(data, f, indent=2)
             print(f"[StreamHandler, storeOcrResult, n_D] Stored OCR for stream {self.id}: {aggregate}")
+
 
         self.last_ocr_results = _results
         self.last_ocr_timestamp = int(time.time())
@@ -691,7 +700,9 @@ class StreamHandler:
     def delta_tracking(self, new_value: float, increase: float, timespan_seconds: float) -> bool:
         """
         Delta tracking is a functionality that stops the OCR from storing faulty values. 
-        It compares the last stored value with the new value and if the difference is higher than the defined delta amount, it will not store the new value.
+        It compares the last stored value with the new value and if the absolute change
+        (increase or decrease) is higher than the allowed delta per elapsed time, 
+        it will not store the new value.
         """
         ocr_result = self.getOcrResult()
         last_aggregate = ocr_result.get("aggregate", {})
@@ -708,14 +719,13 @@ class StreamHandler:
         current_time = float(time.time())
         elapsed = current_time - float(last_timestamp)
 
-        # Guard: keine negativen/0-Zeiten
         if elapsed <= 0:
             return True
 
         if timespan_seconds <= 0:
             raise ValueError("timespan_seconds must be > 0")
 
-        # Kern: rate per second * elapsed = erlaubte Änderung seit letztem Messpunkt
+        # allowed change per elapsed time
         rate_per_second = float(increase) / float(timespan_seconds)
         allowed_change = rate_per_second * elapsed
 
