@@ -1,3 +1,4 @@
+import time
 from fastapi import APIRouter , HTTPException, Body
 from fastapi.responses import JSONResponse, StreamingResponse
 import json
@@ -101,11 +102,24 @@ async def ocr_stream(stream_id: str):
         raise HTTPException(status_code=404, detail="Stream not found")
 
     exec_mode = handler.get_scheduling_settings().get("execution_mode", "manual")
+    cache_enabled = handler.get_scheduling_settings().get("cache_enabled", False)
+    cache_duration = handler.get_scheduling_settings().get("cache_duration", 10)
+    cache_duration_unit = handler.get_scheduling_settings().get("cache_duration_unit", "minutes")
+
+    if cache_enabled:
+        last_ocr_time = handler.last_ocr_timestamp
+        current_time = int(time.time())
+        duration_seconds = cache_duration * (60 if cache_duration_unit == "minutes" else 3600 if cache_duration_unit == "hours" else 1)
+        if current_time - last_ocr_time < duration_seconds:
+            print("Returning cached OCR results, within cache duration, no new OCR run, last OCR at", last_ocr_time, "current time", current_time)
+            cached_result = handler.get_last_ocr_results()
+            if cached_result is not None:
+                return {"results": cached_result, "cached": True}
 
     if exec_mode == "on_api_call":
         try:
             results = await handler.run_ocr()
-            return {"results": results}
+            return {"results": results, "cached": False}
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"OCR failed: {e}")
     else:
@@ -113,7 +127,7 @@ async def ocr_stream(stream_id: str):
         results = handler.get_last_ocr_results()
         if results is None:
             raise HTTPException(status_code=404, detail="No OCR results available")
-        return {"results": results}
+        return {"results": results, "cached": True}
 
 
     
@@ -135,7 +149,25 @@ async def ocr_stream(
         raise HTTPException(status_code=404, detail="Stream not found")
     
     exec_mode = handler.get_scheduling_settings().get("execution_mode", "manual")
+    cache_enabled = handler.get_scheduling_settings().get("cache_enabled", False)
+    cache_duration = handler.get_scheduling_settings().get("cache_duration", 10)
+    cache_duration_unit = handler.get_scheduling_settings().get("cache_duration_unit", "minutes")
 
+    if cache_enabled:
+        last_ocr_time = handler.last_ocr_timestamp
+        current_time = int(time.time())
+        duration_seconds = cache_duration * (60 if cache_duration_unit == "minutes" else 3600 if cache_duration_unit == "hours" else 1)
+        if current_time - last_ocr_time < duration_seconds:
+            print("Returning cached OCR results, within cache duration, no new OCR run, last OCR at", last_ocr_time, "current time", current_time)
+            cached_result = handler.get_last_ocr_results()
+            if cached_result is not None:
+                frame = await handler.show_ocr_results(cached_result, color=color)
+                if frame is None:
+                    raise HTTPException(status_code=500, detail="Failed to grab frame from stream")
+                
+                return StreamingResponse(io.BytesIO(frame), media_type="image/jpeg")
+            
+            
     if exec_mode == "on_api_call":
         try:
             results = await handler.run_ocr()
