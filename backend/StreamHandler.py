@@ -543,10 +543,9 @@ class StreamHandler:
             "stream_id": self.id,
             "ocr_running": self.ocrRunning
         })
-        self.storeOcrResult(results, image_fingerprint=image_fingerprint)
-        self.last_ocr_results = results
-        self.last_ocr_timestamp = int(time.time())
-        return results
+        stored = self.storeOcrResult(results, image_fingerprint=image_fingerprint)
+        
+        return stored
 
     async def show_ocr_results(self, ocrResults, color=(255,0,0)):
         # Try to get the latest frame with OCR results overlay
@@ -590,6 +589,12 @@ class StreamHandler:
         except ValueError:
             parsed_value = 0.0
 
+        delta_tracking_allows: bool = self.delta_tracking(
+            parsed_value,
+            self.schedulingSettings.get("delta_amount", 0.0),
+            self.schedulingSettings.get("delta_timespan", 0) * (60 if self.schedulingSettings.get("delta_timespan_unit", "minutes") == "minutes" else 3600 if self.schedulingSettings.get("delta_timespan_unit", "minutes") == "hours" else 1)
+        )
+
         aggregate = {
             "value": parsed_value,
             "confidence": average_conf,
@@ -603,12 +608,23 @@ class StreamHandler:
             "aggregate": aggregate
         }
 
-        with open(filename, "w") as f:
-            json.dump(data, f, indent=2)
+        if self.schedulingSettings.get("delta_tracking", False):
+            if delta_tracking_allows:
+                with open(filename, "w") as f:
+                    json.dump(data, f, indent=2)
+                print(f"[StreamHandler, storeOcrResult, D] Stored OCR for stream {self.id}: {aggregate}")
+            else:
+                print(f"[StreamHandler, storeOcrResult, D_b] Delta tracking blocked storing OCR for stream {self.id}: {aggregate}")
+                #return last stored value
+                return self.getOcrResult()
+        else:
+            with open(filename, "w") as f:
+                json.dump(data, f, indent=2)
+            print(f"[StreamHandler, storeOcrResult, n_D] Stored OCR for stream {self.id}: {aggregate}")
 
-        print(f"[StreamHandler, storeOcrResult] Stored OCR for stream {self.id}: {aggregate}")
+        self.last_ocr_results = _results
+        self.last_ocr_timestamp = int(time.time())
         return data[self.id]
-
 
     def getOcrResult(self):
         filename = "/data/ocr.json"
@@ -671,3 +687,38 @@ class StreamHandler:
         if not hasattr(self, 'schedulingSettings'):
             self.schedulingSettings = {}
         self.schedulingSettings.update(settings)
+
+    def delta_tracking(self, new_value: float, increase: float, timespan_seconds: float) -> bool:
+        """
+        Delta tracking is a functionality that stops the OCR from storing faulty values. 
+        It compares the last stored value with the new value and if the difference is higher than the defined delta amount, it will not store the new value.
+        """
+        ocr_result = self.getOcrResult()
+        last_aggregate = ocr_result.get("aggregate", {})
+
+        last_value = last_aggregate.get("value")
+        last_timestamp = last_aggregate.get("timestamp")
+
+        if last_value is None or not last_timestamp:
+            return True
+
+        if last_value == new_value:
+            return True
+
+        current_time = float(time.time())
+        elapsed = current_time - float(last_timestamp)
+
+        # Guard: keine negativen/0-Zeiten
+        if elapsed <= 0:
+            return True
+
+        if timespan_seconds <= 0:
+            raise ValueError("timespan_seconds must be > 0")
+
+        # Kern: rate per second * elapsed = erlaubte Änderung seit letztem Messpunkt
+        rate_per_second = float(increase) / float(timespan_seconds)
+        allowed_change = rate_per_second * elapsed
+
+        actual_change = abs(float(new_value) - float(last_value))
+
+        return actual_change <= allowed_change
