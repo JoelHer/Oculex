@@ -116,6 +116,7 @@ class StreamHandler:
         self.lastFrame: np.ndarray = None  
         self.lastFrameTimestamp = None
         self.ocrRunning = False
+        self.last_ocr_results = None
         if schedulingSettings:
             self.schedulingSettings = schedulingSettings
         else:
@@ -542,6 +543,7 @@ class StreamHandler:
             "ocr_running": self.ocrRunning
         })
         self.storeOcrResult(results, image_fingerprint=image_fingerprint)
+        self.last_ocr_results = results
         return results
 
     async def show_ocr_results(self, ocrResults, color=(255,0,0)):
@@ -651,6 +653,14 @@ class StreamHandler:
 
     def set_streamID(self, stream_id):
         self.id = stream_id
+
+    def get_last_ocr_results(self):
+        if self.last_ocr_results is None:
+            #load from storage
+            ocr_result = self.getOcrResult()
+            self.last_ocr_results = ocr_result.get("results", [])
+            
+        return self.last_ocr_results
 
     def get_scheduling_settings(self):
         return self.schedulingSettings

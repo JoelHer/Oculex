@@ -1,7 +1,7 @@
 from fastapi import APIRouter , HTTPException, Body
 from fastapi.responses import JSONResponse, StreamingResponse
 import json
-from backend.StreamManager import StreamManager
+from backend.StreamManager import StreamManager, StreamHandler
 from pathlib import Path
 from pydantic import BaseModel
 import re
@@ -96,15 +96,26 @@ async def update_stream(stream_id: str, stream: StreamModel):
 
 @router.get("/{stream_id}/ocr")
 async def ocr_stream(stream_id: str):
-    handler = streamManager.get_stream(stream_id)
+    handler: StreamHandler = streamManager.get_stream(stream_id)
     if handler is None:
         raise HTTPException(status_code=404, detail="Stream not found")
-    
-    try:
-        results = await handler.run_ocr()
+
+    exec_mode = handler.get_scheduling_settings().get("execution_mode", "manual")
+
+    if exec_mode == "on_api_call":
+        try:
+            results = await handler.run_ocr()
+            return {"results": results}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"OCR failed: {e}")
+    else:
+        # just return the last results
+        results = handler.get_last_ocr_results()
+        if results is None:
+            raise HTTPException(status_code=404, detail="No OCR results available")
         return {"results": results}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OCR failed: {e}")
+
+
     
 @router.get("/{stream_id}/ocr-withimage")
 async def ocr_stream(
@@ -123,16 +134,30 @@ async def ocr_stream(
     if handler is None:
         raise HTTPException(status_code=404, detail="Stream not found")
     
-    try:
-        results = await handler.run_ocr()
+    exec_mode = handler.get_scheduling_settings().get("execution_mode", "manual")
+
+    if exec_mode == "on_api_call":
+        try:
+            results = await handler.run_ocr()
+            frame = await handler.show_ocr_results(results, color=color)
+            if frame is None:
+                raise HTTPException(status_code=500, detail="Failed to grab frame from stream")
+            
+            return StreamingResponse(io.BytesIO(frame), media_type="image/jpeg")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"OCR failed: {e}")
+    else:
+        # just return the last results
+        results = handler.get_last_ocr_results()
+        if results is None:
+            raise HTTPException(status_code=404, detail="No OCR results available")
+        
         frame = await handler.show_ocr_results(results, color=color)
         if frame is None:
             raise HTTPException(status_code=500, detail="Failed to grab frame from stream")
         
         return StreamingResponse(io.BytesIO(frame), media_type="image/jpeg")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OCR failed: {e}")
-    
+
 @router.post("/{id}/ocr-settings", response_class=JSONResponse)
 def set_settings_by_id(id: str, settings: dict = Body(...)):
     """
