@@ -25,6 +25,17 @@
         "reveal": "always",
         "panel": "dedicated"
       }
+    },
+    {
+      "label": "Run Server",
+      "type": "shell",
+      "command": "python server.py",  // Starts the Python server
+      "group": "none",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
     }
   ]
 }
