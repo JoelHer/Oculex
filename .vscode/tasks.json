@@ -12,7 +12,8 @@
         "panel": "dedicated"
       },
       "dependsOn": [
-        "Run Vue Build"
+        "Run Vue Build",
+        "Run Tests"
       ]
     },
     {
@@ -31,6 +32,31 @@
       "type": "shell",
       "command": "python server.py",  // Starts the Python server
       "group": "none",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "dependsOn": [
+        "Run Tests"
+      ]
+    },
+    {
+      "label": "Run Server (No Tests)",
+      "type": "shell",
+      "command": "python server.py",  // Starts the Python server
+      "group": "none",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "python -m unittest discover -s tests",  
+      "group": "test",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
