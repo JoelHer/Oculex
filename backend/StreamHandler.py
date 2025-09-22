@@ -719,8 +719,8 @@ class StreamHandler:
         current_time = float(time.time())
         elapsed = current_time - float(last_timestamp)
 
-        if elapsed <= 0:
-            return True
+        if elapsed < 0:
+            raise ValueError("Current time is earlier than last OCR timestamp, timetravel not supported")
 
         if timespan_seconds <= 0:
             raise ValueError("timespan_seconds must be > 0")
