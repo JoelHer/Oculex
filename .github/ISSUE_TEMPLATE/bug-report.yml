@@ -1,0 +1,53 @@
+# .github/ISSUE_TEMPLATE/bug-report.yml
+name: "🐞 Bug report"
+description: "Report a bug to help us improve"
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "## Expected Behavior"
+  - type: textarea
+    id: expected
+    attributes:
+      label: "What should happen?"
+      description: "Describe the expected behavior."
+      placeholder: "It should..."
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "## Current Behavior"
+  - type: textarea
+    id: current
+    attributes:
+      label: "What happens instead?"
+      description: "Describe what’s happening instead of the expected behavior."
+      placeholder: "It does..."
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "## Steps to Reproduce"
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Steps to Reproduce"
+      description: "Give us exact steps so we can reproduce it."
+      value: |
+        1. 
+        2. 
+        3. 
+        4. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Context (Environment)"
+      description: "How did this issue affect you? What are you trying to do?"
+    validations:
+      required: true
