@@ -1,0 +1,32 @@
+# .github/ISSUE_TEMPLATE/polish-request.yml
+name: "🎨 Polish request"
+description: "Request improvements for UI, UX, performance, or code quality"
+title: "[Polish] "
+labels: ["polish"]
+body:
+  - type: textarea
+    id: area
+    attributes:
+      label: "Area of improvement"
+      description: "Which part of the project needs polish?"
+      placeholder: "UI, docs, performance, error messages..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: improvement
+    attributes:
+      label: "Describe the improvement"
+      description: "What specifically could be better?"
+      placeholder: "The button is hard to find, the docs are confusing..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: "Why does this matter?"
+      description: "What’s the impact of this improvement?"
+      placeholder: "Makes onboarding easier, looks cleaner..."
+    validations:
+      required: false

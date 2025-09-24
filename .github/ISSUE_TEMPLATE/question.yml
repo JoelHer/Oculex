@@ -1,0 +1,23 @@
+# .github/ISSUE_TEMPLATE/question.yml
+name: "❓ Question / Support"
+description: "Ask a question or request guidance"
+title: "[Question] "
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: "Your question"
+      description: "What do you want to know?"
+      placeholder: "How do I...?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Additional context"
+      description: "Anything else that helps understand the question."
+      placeholder: "I tried X, I got Y..."
+    validations:
+      required: false
