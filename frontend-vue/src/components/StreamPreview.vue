@@ -132,11 +132,6 @@ onMounted(() => {
 
 })
 
-onUnmounted(() => {
-  if (socket.value) {
-    socket.value.close()
-  }
-})
 const closeEditOverlay = () => {
   showEditOverly.value = false
 }

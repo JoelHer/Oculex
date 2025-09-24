@@ -131,12 +131,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (socket.value) {
-    socket.value.close()
-  }
-})
-
-onUnmounted(() => {
   clearInterval(intervalId)
 })
 
