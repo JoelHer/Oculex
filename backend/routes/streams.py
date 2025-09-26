@@ -68,7 +68,7 @@ async def add_stream(stream: StreamModel):
     pattern = re.compile("^[a-zA-Z0-9-_]{3,35}$")
     print(stream)
     if pattern.match(stream.name):
-        streamManager.add_stream(stream.name,stream.stream_src,None,[],{},[])
+        streamManager.add_stream(stream.name,stream.stream_src,None,[],{},[],{})
         streamManager.store_streams()
         return JSONResponse(status_code=200, content={"success": True})
     else:
