@@ -462,7 +462,7 @@ class StreamHandler:
                     "status": self.status
                 })
 
-    async def run_ocr(self):
+    async def run_ocr(self, forceCacheBust=False):
         def decode_jpeg_to_array(jpeg_bytes):
             nparr = np.frombuffer(jpeg_bytes, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -484,23 +484,22 @@ class StreamHandler:
             await self.update_status(StreamStatus.ERROR)
             raise RuntimeError(f"Failed to get computed frame for OCR: {e}")
 
-        # generate fingerprint
         image_fingerprint = str(hash(stitched_jpeg))
 
         oldOcrData = self.getOcrResult()
 
-        if oldOcrData.get("aggregate", {}).get("image-fingerprint") == image_fingerprint:
+        if oldOcrData.get("aggregate", {}).get("image-fingerprint") == image_fingerprint and not forceCacheBust:
             print("[StreamHandler, run_ocr] Image fingerprint matches previous OCR run, skipping OCR")
             await self.update_status(StreamStatus.OK)
-            return oldOcrData
+            return {
+                **oldOcrData,
+                "last_ocr_timestamp": self.last_ocr_timestamp or oldOcrData.get("aggregate", {}).get("timestamp", 0)
+            }
 
         try:
-            # Compute widths of each box
             widths = [box["box_width"] for box in self.selectionBoxes]
             heights = [box["box_height"] for box in self.selectionBoxes]
 
-            # Since you resized all snippets to same height when stitching,
-            # we use the stitched image height as height for all.
             height = stitched_img.shape[0]
 
             snippets = []
@@ -524,7 +523,6 @@ class StreamHandler:
             "ocr_running": self.ocrRunning
         })
 
-        # Run OCR as before
         engine_type = self.processingSettings.get("ocrEngine", "easyocr")
         ocr_config = self.processingSettings.get("ocrConfig", {})
         engine = get_ocr_engine(engine_type, ocr_config)
@@ -543,9 +541,15 @@ class StreamHandler:
             "stream_id": self.id,
             "ocr_running": self.ocrRunning
         })
+        
+        self.last_ocr_timestamp = int(time.time())
+        
         stored = self.storeOcrResult(results, image_fingerprint=image_fingerprint)
         
-        return stored
+        return {
+            **stored,
+            "last_ocr_timestamp": self.last_ocr_timestamp
+        }
 
     async def show_ocr_results(self, ocrResults, color=(255,0,0)):
         # Try to get the latest frame with OCR results overlay
@@ -686,6 +690,7 @@ class StreamHandler:
             #load from storage
             ocr_result = self.getOcrResult()
             self.last_ocr_results = ocr_result.get("results", [])
+            self.last_ocr_timestamp = ocr_result.get("aggregate", {}).get("timestamp", 0)
 
         return self.last_ocr_results
 

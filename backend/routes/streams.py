@@ -114,22 +114,38 @@ async def ocr_stream(stream_id: str):
             print("Returning cached OCR results, within cache duration, no new OCR run, last OCR at", last_ocr_time, "current time", current_time)
             cached_result = handler.get_last_ocr_results()
             if cached_result is not None:
-                return {"results": cached_result, "cached": True}
+                return {"results": cached_result, "cached": True, "timestamp": handler.last_ocr_timestamp}
 
     if exec_mode == "on_api_call":
         try:
             results = await handler.run_ocr()
-            return {"results": results, "cached": False}
+            return {"results": results, "cached": False, "timestamp": handler.last_ocr_timestamp}
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"OCR failed: {e}")
+    if exec_mode == "manual":
+        results = handler.get_last_ocr_results()
+        if results is None:
+            raise HTTPException(status_code=404, detail="No OCR results available")
+        return {"results": results, "cached": True, "timestamp": handler.last_ocr_timestamp}   
+    
     else:
         # just return the last results
         results = handler.get_last_ocr_results()
         if results is None:
             raise HTTPException(status_code=404, detail="No OCR results available")
-        return {"results": results, "cached": True}
+        return {"results": results, "cached": True, "timestamp": handler.last_ocr_timestamp}
 
-
+@router.post("/{stream_id}/ocr/run", response_class=JSONResponse)
+async def trigger_ocr_run(stream_id: str):
+    handler: StreamHandler = streamManager.get_stream(stream_id)
+    if handler is None:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    
+    try:
+        results = await handler.run_ocr(True)
+        return JSONResponse(content={"results": results, "cached": False, "timestamp": handler.last_ocr_timestamp})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OCR failed: {e}")
     
 @router.get("/{stream_id}/ocr-withimage")
 async def ocr_stream(

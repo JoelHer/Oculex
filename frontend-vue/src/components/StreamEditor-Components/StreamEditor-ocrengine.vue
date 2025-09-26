@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch, emit } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import StreamEditorImageWithLoader from './StreamEditor-ImageWithLoader.vue'
 import ColorPicker from '../ColorPicker.vue'
 import { useWebSocket } from '../../websocket'
@@ -13,17 +13,20 @@ const props = defineProps({
   }
 })
 
+// --- reactive ---
 const lastParseUpdate = ref(null)
 const parseAgo = ref('—')
 const ocrStatus = ref('loading')
 const parsedText = ref('—')
 const confidence = ref(null)
-const ocrEngine = ref('not fetched') // Dummy for now
+const ocrEngine = ref('not fetched')
+const ocrEngineOptions = ref([]) // dropdown options
 
 const ocrRunning = ref(false)
 
-const imageRevision = ref(null) // Used for cache busting
+const imageRevision = ref(null) // cache busting
 const isSaving = ref(false)
+const ocrTriggering = ref(false) // new: Run OCR busy state
 const selectedColor = ref('#00ffff')
 let oSelectedColor = selectedColor.value
 
@@ -31,13 +34,8 @@ const isCleanForm = ref(true)
 
 const { socket, connectionStatus, reconnect } = useWebSocket()
 
-watch(selectedColor, (nV, oV)=>{
-  if (nV != oSelectedColor) {
-    isCleanForm.value = false
-  }
-  if (nV == oSelectedColor) {
-    isCleanForm.value = true
-  }
+watch(selectedColor, (nV) => {
+  isCleanForm.value = (nV === oSelectedColor)
 })
 
 let intervalId
@@ -47,36 +45,71 @@ function updateAgoLabels() {
   if (lastParseUpdate.value) {
     const secs = Math.floor((now - lastParseUpdate.value) / 1000)
     parseAgo.value = `${secs}s ago`
+  } else {
+    parseAgo.value = '—'
   }
 }
 
-function onParseImageLoad() {  
-  fetch(`/streams/${props.stream.name}/ocr?t=${Date.now()}`)
-  .then(response => response.json())
-  .then(data => {
-      if (data.results.aggregate) {
+/**
+ * Fetch OCR results and update local state.
+ * Returns the fetch promise so callers (runOCR) can await if desired.
+ */
+function onParseImageLoad() {
+  return fetch(`/streams/${props.stream.name}/ocr?t=${Date.now()}`)
+    .then(response => response.json())
+    .then(data => {
+      lastParseUpdate.value =  data.timestamp * 1000
+      if (data.results && data.results.aggregate) {
         ocrStatus.value = 'online'
-        parsedText.value = data.results.aggregate.value || null
-        confidence.value = data.results.aggregate.confidence*100 || null
-        lastParseUpdate.value =  data.results.aggregate.timestamp*1000 || null
-      } else {
-
-        if (data.results) {
-          stringedText = ''
-          totalConfidence = 0
-          data.results.forEach(res => {
-            stringedText += res.text || ''
-            totalConfidence += (res.confidence || 0) * 100
-          });
-          confidence.value = totalConfidence / data.results.length || null
-          parsedText.value = stringedText || null
-          lastParseUpdate.value = Date.now()
-          ocrStatus.value = 'online'
-        }
+        parsedText.value = data.results.aggregate.value || '—'
+        confidence.value = (data.results.aggregate.confidence != null) ? (data.results.aggregate.confidence * 100) : null
+        lastParseUpdate.value = (data.results.aggregate.timestamp) ? data.results.aggregate.timestamp * 1000 : 0
+        return
       }
+
+      if (data.results && Array.isArray(data.results)) {
+        // collect and sanitize pieces
+        const texts = data.results.map(r => (r.text || '').replace(/\r/g, '').trim())
+
+        // compute average length to detect "one-character-per-line" cases
+        const totalLen = texts.reduce((s, t) => s + (t ? t.length : 0), 0)
+        const avgLen = texts.length ? (totalLen / texts.length) : 0
+
+        let combined = ''
+        if (avgLen > 1.5 || texts.length <= 4) {
+          // normal case: join with spaces, keep readability (avoid forced newlines per char)
+          combined = texts.filter(Boolean).join(' ')
+        } else {
+          // likely single-char-per-entry (e.g. characters split vertically) -> join without separators
+          combined = texts.join('')
+        }
+
+        parsedText.value = combined.trim() || '—'
+
+        // confidence: average of confidences if available
+        let confSum = 0, confCount = 0
+        data.results.forEach(r => {
+          if (r.confidence != null) {
+            confSum += (r.confidence || 0) * 100
+            confCount++
+          }
+        })
+        confidence.value = confCount ? (confSum / confCount) : null
+
+        
+        
+        ocrStatus.value = 'online'
+        return
+      }
+      
+      // fallback
+      parsedText.value = '—'
+      confidence.value = null
+      ocrStatus.value = 'online'
     })
     .catch(error => {
-      console.error('Error fetching OCR settings:', error)
+      console.error('Error fetching OCR results:', error)
+      ocrStatus.value = 'error'
     })
 }
 
@@ -85,45 +118,51 @@ function onParseImageError() {
 }
 
 function handleMessage(event) {
-  const data = JSON.parse(event.data)
-  if (data.type == 'stream/ocr_status') {
-    if (data.stream_id == props.streamid) {
-      ocrStatus.value = data.ocr_running ? 'Running' : 'nothing'
-      ocrRunning.value = data.ocr_running
+  try {
+    const data = JSON.parse(event.data)
+    if (data.type === 'stream/ocr_status' && data.stream_id === props.stream.name) {
+      ocrStatus.value = data.ocr_running ? 'online' : 'nothing'
+      ocrRunning.value = !!data.ocr_running
     }
+  } catch (e) {
+    // ignore non-json or unexpected messages
   }
 }
 
 onMounted(() => {
   intervalId = setInterval(updateAgoLabels, 1000)
-  imageRevision.value = Date.now() // Initialize to bust cache
+  imageRevision.value = Date.now()
+
   fetch(`/streams/${props.stream.name}/ocr-settings`)
     .then(response => response.json())
     .then(data => {
       ocrEngine.value = data.ocr_engine || 'EasyOCR'
-      selectedColor.value = data.ocr_color || '#000000'
+      if (Array.isArray(data.available_engines) && data.available_engines.length) {
+        ocrEngineOptions.value = data.available_engines
+      } else {
+        ocrEngineOptions.value = [ocrEngine.value]
+      }
+      selectedColor.value = data.ocr_color || '#00ffff'
       oSelectedColor = selectedColor.value
     })
     .catch(error => {
       console.error('Error fetching OCR settings:', error)
+      ocrEngineOptions.value = ['EasyOCR']
+      ocrEngine.value = 'EasyOCR'
     })
 
   fetch(`/streams/${props.stream.name}?t=${Date.now()}`)
     .then(response => response.json())
     .then(data => {
-      ocrRunning.value = data.ocrRunning
-      console.log("Fetched initial OCR running state:", ocrRunning.value)
+      ocrRunning.value = !!data.ocrRunning
     })
     .catch(error => {
       console.error('Error fetching stream status:', error)
     })
 
   if (socket.value) {
-    const handler = (event) => {
-      handleMessage(event) // your function
-    }
+    const handler = (event) => handleMessage(event)
     socket.value.addEventListener('message', handler)
-
     onUnmounted(() => {
       socket.value.removeEventListener('message', handler)
     })
@@ -139,68 +178,156 @@ async function saveOCRSettings() {
   try {
     const response = await fetch(`/streams/${props.stream.name}/ocr-settings`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ocr_engine: "EasyOCR",
+        ocr_engine: ocrEngine.value,
         ocr_color: selectedColor.value
       })
     })
 
-    if (!response.ok) {
-      throw new Error('Failed to save changes')
-    } else {
-      // Update the stream object with new values so the isDirty computed property updates
-      //props.stream.url = editedRtspUrl.value
-      //props.stream.name = editedName.value
-      oSelectedColor = selectedColor.value
-      isCleanForm.value = true
-    }
+    if (!response.ok) throw new Error('Failed to save')
+    oSelectedColor = selectedColor.value
+    isCleanForm.value = true
   } catch (error) {
     console.error('Error saving changes:', error)
+    alert('Fehler beim Speichern der OCR-Einstellungen')
   } finally {
     isSaving.value = false
   }
 }
 
+async function runOCR() {
+  if (ocrTriggering.value) return
+  ocrTriggering.value = true
+  ocrStatus.value = 'loading'
+  try {
+    const res = await fetch(`/streams/${props.stream.name}/ocr/run`, {
+      method: 'POST'
+    })
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>null)
+      throw new Error(txt || res.statusText || 'Trigger failed')
+    }
+
+    imageRevision.value = Date.now()
+    lastParseUpdate.value = Date.now()
+    await onParseImageLoad()
+  } catch (err) {
+    console.error('Error triggering OCR run:', err)
+    alert('Fehler beim Starten der OCR: ' + (err.message || 'unknown'))
+  } finally {
+    ocrTriggering.value = false
+  }
+}
 </script>
 
 <template>
-  <div class="ocr-view">
+  <div class="ocr-root">
     <h2 class="section-title">OCR</h2>
 
-    <div class="overview-grid">
-      <div class="card">
-        <div class="card-body">
-          <h3>OCR Settings</h3>
-          <p><strong>OCR Engine:</strong> {{ ocrEngine }}</p>
-          <p><strong>Highlight Color: </strong><ColorPicker v-model="selectedColor"/></p>
-          <button @click="saveOCRSettings" :disabled="isCleanForm || isSaving">Save Settings</button>
+    <div class="ocr-layout">
+      <div class="left-col">
+        <div class="stream-box category-box">
+          <h3 class="category-title">Parsed OCR Image</h3>
+          <div class="category-body">
+            <div class="image-wrapper">
+              <StreamEditorImageWithLoader
+                :streamUrl="`/streams/${encodeURIComponent(props.stream.name)}/ocr-withimage?t=${imageRevision}`"
+                @load="onParseImageLoad"
+                @error="onParseImageError"
+                class="parsed-image"
+              />
+            </div>
+            <div class="form-field readonly">
+              <div class="output-meta">
+                <div class="output-chip">
+                  <div class="chip-label">Status</div>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <span :class="['status-dot', ocrStatus]"></span>
+                    <div class="chip-value">{{ ocrStatus === 'loading' ? 'Loading…' : (parseAgo || '—') }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stream-box category-box">
+          <h3 class="category-title">OCR Output</h3>
+          <div class="category-body">
+            <div class="output-meta">
+              <div class="output-chip">
+                <div class="chip-label">Confidence</div>
+                <div class="chip-value">{{ confidence !== null ? (confidence.toFixed(1) + '%') : '—' }}</div>
+              </div>
+
+              <div class="output-chip">
+                <div class="chip-label">Last Updated</div>
+                <div class="chip-value">{{ parseAgo }}</div>
+              </div>
+            </div>
+
+            <label class="muted-label" style="margin-top:8px;">Parsed Text</label>
+            <div class="output-panel" aria-live="polite" role="status">
+              <div class="output-text" v-if="parsedText && parsedText !== '—'">{{ parsedText }}</div>
+              <div class="output-empty" v-else>— no parsed text —</div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="card">
-        <StreamEditorImageWithLoader 
-          :streamUrl="`/streams/${encodeURIComponent(props.stream.name)}/ocr-withimage?t=${imageRevision}`"
-          @load="onParseImageLoad"
-          @error="onParseImageError"
-          class="card-image"
-        />
 
-        <div class="card-footer">
-          <span :class="['status-dot', ocrStatus]"></span>
-          <span>Parsed OCR Image • {{ parseAgo }}</span>
+      <div class="right-col">
+        <div class="stream-box category-box">
+          <h3 class="category-title">OCR Settings</h3>
+          <div class="category-body">
+            <div class="form-field">
+              <label>OCR Engine</label>
+              <select v-model="ocrEngine">
+                <option v-for="opt in ocrEngineOptions" :key="opt" :value="opt">{{ opt }}</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label>Highlight Color</label>
+              <ColorPicker v-model="selectedColor" />
+            </div>
+
+            <div style="margin-top:8px; display:flex; gap:12px; align-items:center;">
+              <button
+                class="run-button"
+                @click="runOCR"
+                :disabled="ocrTriggering || isSaving"
+                :class="{ 'disabled': ocrTriggering || isSaving }"
+              >
+                <span class="button-content">
+                  <span class="spinner" v-if="ocrTriggering"></span>
+                  <span class="text" :class="{ invisible: ocrTriggering }">Run OCR</span>
+                </span>
+              </button>
+
+              <button
+                class="save-button"
+                @click="saveOCRSettings"
+                :disabled="isCleanForm || isSaving"
+                :class="{ 'disabled': isCleanForm || isSaving }"
+              >
+                <span class="button-content">
+                  <span class="spinner" v-if="isSaving"></span>
+                  <span class="text" :class="{ invisible: isSaving }">Save Settings</span>
+                </span>
+              </button>
+
+              <div style="color:#aaa; font-size:0.95rem;">{{ isCleanForm ? 'Saved' : 'Unsaved changes' }}</div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div class="card">
-        <div class="card-body">
-          <h3>OCR Output</h3>
-          <p><strong>Parsed Text:</strong> {{ parsedText }}</p>
-          <p><strong>Confidence:</strong> {{ confidence !== null ? confidence.toFixed(1) + '%' : '—' }}</p>
-          <p><strong>Engine:</strong> {{ ocrEngine }}</p>
-          <p><strong>Status:</strong> {{ ocrStatus }}</p>
-          <p><strong>Last Updated:</strong> {{ parseAgo }}</p>
+        <div class="stream-box category-box">
+          <h3 class="category-title">Runtime</h3>
+          <div class="category-body">
+            <div class="radio-row"><strong>Engine:</strong>&nbsp;<span style="color:#ccc">{{ ocrEngine }}</span></div>
+            <div class="radio-row"><strong>OCR running:</strong>&nbsp;<span style="color:#ccc">{{ ocrRunning ? 'yes' : 'no' }}</span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -208,73 +335,172 @@ async function saveOCRSettings() {
 </template>
 
 <style scoped>
-.ocr-view {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  color: white;
-}
-
-.section-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 5px;
-}
-
-.overview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.card {
-  background: #23252c;
-  border: 2px solid #2d2f37;
-  border-radius: 15px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.card-image {
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  border-bottom: 1px solid #2d2f37;
-}
-
-.card-footer {
-  padding: 12px;
-  display: flex;
+/* small additions for run button + existing styles kept */
+.run-button {
+  position: relative;
+  align-self: flex-start;
+  background: transparent;
+  color: #40F284;
+  border: 1px solid #40F284;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 42px;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  color: #ccc;
+  justify-content: center;
+}
+.run-button.disabled { opacity:0.45; cursor:not-allowed; pointer-events:none; }
+
+/* existing spinner/text classes reused */
+.button-content { position:relative; display:flex; align-items:center; justify-content:center; }
+.spinner { position:absolute; width:16px; height:16px; border:3px solid black; border-top:3px solid transparent; border-radius:50%; animation:spin 0.8s linear infinite; }
+.text { transition: opacity 0.2s ease; }
+.invisible { opacity:0; }
+
+/* rest of your existing style (kept) */
+.chip-label {
+  font-size:0.72rem;
+  color:#9aa0a6;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+}
+.output-panel {
+  background: transparent;
+  border: none;
+  padding: 6px 0;
+}
+.output-text {
+  white-space: pre-wrap;        
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  color: #e6e6e6;
+  padding: 12px;
+}
+.output-empty {
+  color: #9aa0a6;
+  font-style: italic;
+  padding: 10px 12px;
+}
+.output-meta {
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
 }
 
-.card-body {
-  padding: 16px;
+.output-chip {
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:8px 12px;
+  border-radius:999px;                
+  font-size:0.9rem;
+  color:#e9eef0;
+  min-width: 96px;
+}
+.chip-value {
+  font-weight:700;
+  font-size:0.95rem;
+  color:#ffffff;
+  line-height:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-.status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 6px;
-  display: inline-block;
-  background-color: #4a4d57; 
+.ocr-root { display:flex; flex-direction:column; gap:16px; color:white; }
+.section-title { font-size:1.5rem; font-weight:600; }
+
+.ocr-layout { display:grid; grid-template-columns: 1fr 320px; gap:20px; align-items:start; }
+.left-col { display:flex; flex-direction:column; gap:12px; }
+.right-col { display:flex; flex-direction:column; gap:12px; }
+
+.stream-box {
+  background: #23252c;
+  padding: 14px;
+  border-radius: 15px;
+  border: 2px solid #2d2f37;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.status-dot.online {
+.category-box { padding: 12px 14px; }
+.category-title { color:#40F284; font-size:1.05rem; margin:0; font-weight:700; }
+.category-body { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+
+.radio-row, .checkbox-row { display:flex; align-items:center; gap:8px; color:#ddd; font-size:0.98rem; }
+.form-field { display:flex; flex-direction:column; gap:6px; }
+label { color:#aaa; font-size:0.95rem; }
+
+input[type="text"], input[type="number"], select {
+  background: #1e1f25;
+  color: white;
+  border: 1px solid #2d2f37;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.98rem;
+}
+
+.image-wrapper { width:100%; display:flex; justify-content:center; align-items:center; }
+.parsed-image {
+  width:100%;
+  max-height:420px;
+  object-fit: contain;
+  border-radius:8px;
+  background:#111;
+  border:1px solid #2d2f37;
+  display:block;
+}
+
+.readonly { opacity:0.95; }
+.readonly-value {
+  background:#15161a;
+  border-radius:6px;
+  padding:10px;
+  font-size:0.95rem;
+  color:#e6e6e6;
+  border:1px solid #2d2f37;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+
+.text-output {
+  min-height:90px;
+  max-height:340px;
+  overflow:auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+  font-size:0.95rem;
+}
+
+.save-button {
+  position: relative;
+  align-self: flex-start;
   background-color: #40F284;
+  color: black;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 140px;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
+.save-button.disabled { background-color:#444; color:#999; cursor:not-allowed; }
+.save-button:disabled { pointer-events:none; }
 
-.status-dot.error {
-  background-color: #f25540;
-}
+@keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
 
-.status-dot.loading {
-  background-color: #4a4d57;
-}
+.status-dot { width: 10px; height: 10px; border-radius: 50%; display:inline-block; background:#4a4d57; }
+.status-dot.online { background:#40F284; }
+.status-dot.error { background:#f25540; }
+.status-dot.loading { background:#4a4d57; }
 </style>
