@@ -1,8 +1,8 @@
-name: "EOeS-alpha"
+name: "Oculex-alpha"
 version: "0.1.16"
-slug: "eoes-alpha"
-description: "Watemeter OCR by Herbst"
-url: "https://github.com/JoelHer/Oculex"  # Change to your actual URL or remove if local
+slug: "oculex-alpha"
+description: "An OCR Stream Aggregator that ingests video streams (e.g. RTSP), extracts text via OCR, and provides unified output. Designed to integrate nicely with Home Assistant for automations, monitoring, and logging."
+url: "https://github.com/JoelHer/Oculex"
 startup: services
 boot: auto
 ports:
