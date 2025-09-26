@@ -294,6 +294,9 @@ class StreamHandler:
                 return None
 
     async def grab_frame(self, displayBoxes=True, displayOcrResults=False, ocrResults=None, color=(0, 255, 0)):
+        # switch R and B of color for OpenCV
+        color = (color[2], color[1], color[0])
+        
         try:
             if os.path.isfile(self.rtsp_url) and self.rtsp_url.lower().endswith((".png", ".jpg", ".jpeg")):
                 frame = cv2.imread(self.rtsp_url, cv2.IMREAD_COLOR)
