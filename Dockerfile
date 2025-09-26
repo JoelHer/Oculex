@@ -25,10 +25,10 @@ RUN pip install --no-cache-dir -r /requirements.txt
 
 COPY . /usr/src/app/
 
-WORKDIR /usr/src/app/frontend
-COPY frontend/package*.json ./
+WORKDIR /usr/src/app/frontend-vue
+COPY frontend-vue/package*.json ./
 RUN npm install
-COPY frontend .
+COPY frontend-vue .
 RUN npm run build
 
 EXPOSE 5000
