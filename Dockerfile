@@ -25,6 +25,12 @@ RUN pip install --no-cache-dir -r /requirements.txt
 
 COPY . /usr/src/app/
 
+WORKDIR /usr/src/app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend .
+RUN npm run build
+
 EXPOSE 5000
 ENV EASYOCR_MODULE_PATH=/data/easyocr-models
 
