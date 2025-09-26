@@ -1,6 +1,6 @@
 name: "Oculex-alpha"
 version: "0.1.18"
-slug: "oculex-alpha"
+slug: "oculex"
 description: "An OCR Stream Aggregator that ingests video streams (e.g. RTSP), extracts text via OCR, and provides unified output. Designed to integrate nicely with Home Assistant for automations, monitoring, and logging."
 url: "https://github.com/JoelHer/Oculex"
 startup: services
@@ -25,6 +25,8 @@ arch:
   - armhf
   - armv7
   - i386
+
+image: "joelherbst/image-{arch}-oculex"
 
 ingress: false
 

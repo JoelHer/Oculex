@@ -28,6 +28,7 @@ COPY . /usr/src/app/
 WORKDIR /usr/src/app/frontend-vue
 COPY frontend-vue/package*.json ./
 RUN npm install
+RUN npm install -g vite --save-dev
 COPY frontend-vue .
 RUN npm run build
 
