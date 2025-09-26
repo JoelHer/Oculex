@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { EoesStream } from '../../models/EoesStream.js'
+import { getNextCronExecution } from '../../utils.js'
 
 const props = defineProps({
   stream: {
@@ -86,17 +87,13 @@ const isDirty = computed(() => {
     allowDecreasingValues.value !== initialState.allowDecreasingValues
 })
 
-// compute next scheduled run (basic: if interval mode and numeric interval present)
 const nextRun = computed(() => {
-  if (executionMode.value !== 'interval') return ''
-  let mins = parseInt(intervalMinutes.value) || 0
-  if (intervalPreset.value !== 'custom') {
-    mins = parseInt(intervalPreset.value)
+  try {
+    return getNextCronExecution(cronExpression.value)
+  } catch (error) {
+    console.error('Failed to compute next run time', error)
   }
-  if (!mins || mins <= 0) return '—'
-  const d = new Date()
-  d.setMinutes(d.getMinutes() + mins)
-  return d.toLocaleString()
+  return "invalid cron expression"
 })
 
 // load existing scheduling config
