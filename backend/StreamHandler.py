@@ -118,6 +118,7 @@ class StreamHandler:
         self.ocrRunning = False
         self.last_ocr_results = None
         self.last_ocr_timestamp = 0
+        self.scheduler = None
         if schedulingSettings:
             self.schedulingSettings = schedulingSettings
         else:
@@ -709,6 +710,13 @@ class StreamHandler:
         if not hasattr(self, 'schedulingSettings'):
             self.schedulingSettings = {}
         self.schedulingSettings.update(settings)
+
+        if self.scheduler:
+            self.scheduler.remove_job(self.id)
+
+            if settings.get("execution_mode") == "interval" and settings.get("cron_expression") != "":
+                # TODO: add cron expression validation and sanitization
+                self.scheduler.add_job(settings.get("cron_expression"), self.id)
 
     def delta_tracking(self, new_value: float, increase: float, timespan_seconds: float) -> bool:
         """
