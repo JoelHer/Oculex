@@ -539,15 +539,20 @@ class StreamHandler:
             raise RuntimeError(f"OCR execution failed: {e}")
 
         self.ocrRunning = False
-        await self.ws_manager.broadcast({
-            "type": "stream/ocr_status",
-            "stream_id": self.id,
-            "ocr_running": self.ocrRunning
-        })
         
         self.last_ocr_timestamp = int(time.time())
         
         stored = self.storeOcrResult(results, image_fingerprint=image_fingerprint)
+        
+        await self.ws_manager.broadcast({
+            "type": "stream/ocr_status",
+            "stream_id": self.id,
+            "ocr_running": self.ocrRunning,
+            "data": {
+                **stored,
+                "last_ocr_timestamp": self.last_ocr_timestamp
+            }
+        })
         
         return {
             **stored,

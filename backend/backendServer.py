@@ -44,7 +44,8 @@ streamManager.store_streams("/data/streams.json")
 
 scheduler = SchedulingManager(streamManager)
 for stream in streamManager.streams.values():
-    scheduler.add_job("1-59 * * * *", stream.id)
+    if stream.get_scheduling_settings().get("execution_mode", "manual") == "interval" and stream.get_scheduling_settings().get("cron_expression", None):
+        scheduler.add_job(stream.get_scheduling_settings().get("cron_expression", None), stream.id)
 
 # Configure snapshot routes with the shared StreamManager
 getImage.configure_routes(streamManager)
