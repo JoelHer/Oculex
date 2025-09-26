@@ -118,6 +118,7 @@ class StreamHandler:
         self.ocrRunning = False
         self.last_ocr_results = None
         self.last_ocr_timestamp = 0
+        self.scheduler = None
         if schedulingSettings:
             self.schedulingSettings = schedulingSettings
         else:
@@ -539,15 +540,20 @@ class StreamHandler:
             raise RuntimeError(f"OCR execution failed: {e}")
 
         self.ocrRunning = False
-        await self.ws_manager.broadcast({
-            "type": "stream/ocr_status",
-            "stream_id": self.id,
-            "ocr_running": self.ocrRunning
-        })
         
         self.last_ocr_timestamp = int(time.time())
         
         stored = self.storeOcrResult(results, image_fingerprint=image_fingerprint)
+        
+        await self.ws_manager.broadcast({
+            "type": "stream/ocr_status",
+            "stream_id": self.id,
+            "ocr_running": self.ocrRunning,
+            "data": {
+                **stored,
+                "last_ocr_timestamp": self.last_ocr_timestamp
+            }
+        })
         
         return {
             **stored,
@@ -704,6 +710,13 @@ class StreamHandler:
         if not hasattr(self, 'schedulingSettings'):
             self.schedulingSettings = {}
         self.schedulingSettings.update(settings)
+
+        if self.scheduler:
+            self.scheduler.remove_job(self.id)
+
+            if settings.get("execution_mode") == "interval" and settings.get("cron_expression") != "":
+                # TODO: add cron expression validation and sanitization
+                self.scheduler.add_job(settings.get("cron_expression"), self.id)
 
     def delta_tracking(self, new_value: float, increase: float, timespan_seconds: float) -> bool:
         """

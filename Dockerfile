@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     ffmpeg \
     curl \
+    cron \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (current LTS version) and npm

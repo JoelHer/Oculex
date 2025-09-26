@@ -123,6 +123,15 @@ function handleMessage(event) {
     if (data.type === 'stream/ocr_status' && data.stream_id === props.stream.name) {
       ocrStatus.value = data.ocr_running ? 'online' : 'nothing'
       ocrRunning.value = !!data.ocr_running
+      
+      console.log('Received OCR status message:', data)
+
+      if (data.data) {
+        console.log('Received OCR data message:', data.data)
+        lastParseUpdate.value = data.data.timestamp * 1000
+        updateAgoLabels()
+        imageRevision.value = Date.now() // bust cache
+      }
     }
   } catch (e) {
     // ignore non-json or unexpected messages

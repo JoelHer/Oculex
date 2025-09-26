@@ -1,6 +1,7 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { EoesStream } from '../../models/EoesStream.js'
+import { getNextCronExecution } from '../../utils.js'
 
 const props = defineProps({
   stream: {
@@ -42,6 +43,19 @@ const loading = ref(true)
 const now = ref(new Date())
 setInterval(() => now.value = new Date(), 30 * 1000)
 
+// Watch for preset changes and update cron expression
+watch(intervalPreset, (newPreset) => {
+  if (executionMode.value === 'interval' && newPreset !== 'custom') {
+    const cronMap = {
+      '1': '* * * * *',        // every minute
+      '5': '*/5 * * * *',      // every 5 minutes  
+      '15': '*/15 * * * *',    // every 15 minutes
+      '60': '0 * * * *'        // every hour
+    }
+    cronExpression.value = cronMap[newPreset] || ''
+  }
+})
+
 // --- initial state for dirty-check ---
 const initialState = reactive({
   executionMode: executionMode.value,
@@ -73,17 +87,13 @@ const isDirty = computed(() => {
     allowDecreasingValues.value !== initialState.allowDecreasingValues
 })
 
-// compute next scheduled run (basic: if interval mode and numeric interval present)
 const nextRun = computed(() => {
-  if (executionMode.value !== 'interval') return ''
-  let mins = parseInt(intervalMinutes.value) || 0
-  if (intervalPreset.value !== 'custom') {
-    mins = parseInt(intervalPreset.value)
+  try {
+    return getNextCronExecution(cronExpression.value)
+  } catch (error) {
+    console.error('Failed to compute next run time', error)
   }
-  if (!mins || mins <= 0) return '—'
-  const d = new Date()
-  d.setMinutes(d.getMinutes() + mins)
-  return d.toLocaleString()
+  return "invalid cron expression"
 })
 
 // load existing scheduling config
@@ -217,23 +227,23 @@ async function saveChanges() {
             </label>
 
             <div v-if="executionMode === 'interval'" class="interval-block">
-              <label>Interval preset</label>
+              <label>Cron preset</label>
               <select v-model="intervalPreset">
-                <option value="1">every 1 min</option>
-                <option value="5">every 5 min</option>
-                <option value="15">every 15 min</option>
-                <option value="60">every 1 hour</option>
+                <option value="1">every 1 min (* * * * *)</option>
+                <option value="5">every 5 min (*/5 * * * *)</option>
+                <option value="15">every 15 min (*/15 * * * *)</option>
+                <option value="60">every 1 hour (0 * * * *)</option>
                 <option value="custom">custom</option>
               </select>
 
-              <div v-if="intervalPreset === 'custom'" class="form-field">
-                <label>Custom interval (minutes)</label>
-                <input type="number" v-model="intervalMinutes" min="1" />
-              </div>
-
               <div class="form-field">
-                <label>Cron expression (optional)</label>
-                <input type="text" v-model="cronExpression" placeholder="e.g. 0 * * * *" />
+                <label>Cron expression</label>
+                <input 
+                  type="text" 
+                  v-model="cronExpression" 
+                  placeholder="e.g. 0 * * * *"
+                  :readonly="intervalPreset !== 'custom'"
+                />
               </div>
 
               <div class="form-field readonly">
@@ -365,6 +375,11 @@ input[type="text"], input[type="number"], select {
   border-radius: 6px;
   padding: 8px 10px;
   font-size: 0.98rem;
+}
+
+input[type="text"]:read-only {
+  background: #15161a;
+  color: #ccc;
 }
 
 .readonly { opacity:0.95; }

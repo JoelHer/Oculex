@@ -17,6 +17,18 @@ class StreamManager:
         self.ws_manager = ws_manager
         self.VERBOSE_LOGGING = verbose_logging
         self.store_location = "/data/streams.json"
+        self._scheduler = None
+
+    @property
+    def scheduler(self):
+        return self._scheduler
+
+    @scheduler.setter
+    def scheduler(self, new_scheduler):
+        if new_scheduler != self._scheduler:
+            self._scheduler = new_scheduler
+            for stream in self.streams.values():
+                stream.scheduler = self._scheduler
 
     def add_stream(self, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, schedulingSettings):
         self.streams[stream_id] = StreamHandler(stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=self.ws_manager, schedulingSettings=schedulingSettings)

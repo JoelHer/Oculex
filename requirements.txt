@@ -9,3 +9,4 @@ uvicorn
 httpx
 python-multipart
 websockets
+apscheduler
