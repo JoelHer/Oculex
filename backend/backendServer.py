@@ -5,7 +5,9 @@ from fastapi.staticfiles import StaticFiles
 from backend.routes import getImage, helloworld, getBoxes, setBoxes, getSettings, setSettings, dashboard, streams, preview
 import uuid
 from backend.StreamManager import StreamManager
+from backend.StreamHandler import StreamHandler
 from backend.WebSocketManager import WebSocketManager
+from backend.SchedulingManager import SchedulingManager
 import json
 import sys
 import asyncio
@@ -39,6 +41,10 @@ previewStreamManager = StreamManager(verbose_logging=True, ws_manager=ws_manager
 #streamManager.add_stream("a", "rtsp://admin:herbstnvr@10.250.100.88:554/ch01.264", {"configValue": "12"}, settings, boxes)
 streamManager.load_streams("/data/streams.json")
 streamManager.store_streams("/data/streams.json")
+
+scheduler = SchedulingManager(streamManager)
+for stream in streamManager.streams.values():
+    scheduler.add_job("1-59 * * * *", stream.id)
 
 # Configure snapshot routes with the shared StreamManager
 getImage.configure_routes(streamManager)
@@ -98,3 +104,5 @@ async def startup_event():
     # Start routines after FastAPI's event loop is running
     for handler in streamManager.streams.values():
         handler.start_routine()
+
+    scheduler.start()
