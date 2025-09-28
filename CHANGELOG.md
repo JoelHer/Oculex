@@ -9,4 +9,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed bug in the scheduler, which caused new streams to not be added to the cron job list
+- Fixed bug in the scheduler, which caused new streams to not be added to the cron job list ([ed43e3a](https://github.com/JoelHer/Oculex/commit/ed43e3a1bd137142852201edd23a0c8958ffeb74))
