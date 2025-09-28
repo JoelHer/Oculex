@@ -32,9 +32,11 @@ class StreamManager:
 
     def add_stream(self, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, schedulingSettings):
         self.streams[stream_id] = StreamHandler(stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=self.ws_manager, schedulingSettings=schedulingSettings)
+        if self._scheduler:
+            self.streams[stream_id].scheduler = self._scheduler
+
         if self.VERBOSE_LOGGING:
             print(f"[StreamManager] Added stream with ID: {stream_id}")
-        
 
     def get_stream(self, stream_id):
         """Return the stream handler for the given stream ID."""

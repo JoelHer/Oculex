@@ -711,12 +711,16 @@ class StreamHandler:
             self.schedulingSettings = {}
         self.schedulingSettings.update(settings)
 
+        print(f"[StreamHandler] Updated scheduling settings for stream {self.id}: {self.schedulingSettings}")
+
         if self.scheduler:
             self.scheduler.remove_job(self.id)
 
             if settings.get("execution_mode") == "interval" and settings.get("cron_expression") != "":
                 # TODO: add cron expression validation and sanitization
                 self.scheduler.add_job(settings.get("cron_expression"), self.id)
+        else:
+            print(f"[StreamHandler] No scheduler available to update jobs for stream {self.id}; THIS SHOULD NOT HAPPEN, WHAT DID YOU DO???")
 
     def delta_tracking(self, new_value: float, increase: float, timespan_seconds: float) -> bool:
         """

@@ -36,7 +36,11 @@ class SchedulingManager:
         """
         Removes a cron job by the given unique identifier.
         """
-        self.scheduler.remove_job(f"ocr-job-{uid}")
+        try:
+            self.scheduler.remove_job(f"ocr-job-{uid}")
+        except Exception as e:
+            print(f"[SchedulingManager, remove_job]: Failed to remove job {uid} → {e}")
+            return
         print(f"[SchedulingManager, remove_job]: Removed job {uid}")
 
     def list_jobs(self):
