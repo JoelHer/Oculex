@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.10-slim as build
 
 # Install basic packages
 RUN apt-get update && apt-get install -y --no-install-recommends \

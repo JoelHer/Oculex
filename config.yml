@@ -24,7 +24,6 @@ arch:
   - armv7
   - i386
 
-image: "joelherbst/image-{arch}-oculex"
 
 ingress: false
 
