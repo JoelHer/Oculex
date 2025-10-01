@@ -327,8 +327,12 @@ async function saveChanges() {
             </span>
           </button>
 
-          <div v-if="loading" style="color:#aaa; font-size:0.95rem;">Loading…</div>
-          <div v-else style="color:#aaa; font-size:0.95rem;">{{ isDirty ? 'Unsaved changes' : 'Saved' }}</div>
+          <template v-if="loading">
+            <div class="skeleton skeleton-text"></div>
+          </template>
+          <template v-else>
+            <div style="color:#aaa; font-size:0.95rem;">{{ isDirty ? 'Unsaved changes' : 'Saved' }}</div>
+          </template>
         </div>
       </div>
 
@@ -404,6 +408,40 @@ input[type="text"]:read-only {
 }
 .save-button.disabled { background-color:#444; color:#999; cursor:not-allowed; }
 .save-button:disabled { pointer-events:none; }
+
+.skeleton {
+  background: #2d3038;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(74, 77, 87, 0.3),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-text {
+  width: 120px;  /* matches approx length of "Loading…" */
+  height: 16px;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
 
 .button-content { position:relative; display:flex; align-items:center; justify-content:center; }
 .spinner { position:absolute; width:16px; height:16px; border:3px solid black; border-top:3px solid transparent; border-radius:50%; animation:spin 0.8s linear infinite; }
