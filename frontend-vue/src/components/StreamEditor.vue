@@ -256,7 +256,7 @@ async function fetchStreamData() {
 
 .nav-separator {
   height: 2px;
-  background-color: #3b3b3b;
+  background-color: #2d2f37;
   margin: 12px 0;
   margin-top: 0px;
   width: 100%;
