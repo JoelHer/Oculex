@@ -14,11 +14,11 @@ const props = defineProps({
 const streamId = ref(props.stream.name)
 
 const views = [
-  { id: 'overview',   label: 'Overview' },
-  { id: 'source',     label: 'Source' },
-  { id: 'parser',     label: 'Parser' },
-  { id: 'ocrengine',  label: 'OCR Engine' },
-  { id: 'scheduling',  label: 'Scheduling' },
+  { id: 'overview',   label: 'Overview', icon: 'mdi:chart-box' },
+  { id: 'source',     label: 'Source', icon: 'mdi:cctv' },
+  { id: 'parser',     label: 'Parser', icon: 'mdi:magnify-scan' },
+  { id: 'ocrengine',  label: 'OCR Engine', icon: 'mdi:text-recognition' },
+  { id: 'scheduling',  label: 'Scheduling', icon: 'mdi:calendar-star-outline' },
 ]
 
 const streamUrl = ref('Loading URL...')
@@ -79,13 +79,16 @@ async function fetchStreamData() {
         <div class="navbarContainer-body">
             <div class="nav-separator"></div>
             <ul class="view-selector">
-                <li 
+                <li
                     v-for="item in views" 
                     :key="item.id"
-                    :class="{ active: view === item.id }"
+                    :class="['view-selector-li', { active: view === item.id }]"
                     @click="view = item.id"
                 >
-                    {{ item.label }}
+                  <div class="view-selector-text">{{ item.label }}</div>
+                  <div class="view-selector-icon">
+                    <Icon :icon="item.icon" />
+                  </div>
                 </li>
             </ul>
         </div>
@@ -103,6 +106,34 @@ async function fetchStreamData() {
 </template>
 
 <style scoped>
+.view-selector-li {  
+  display: grid;
+  height: 40px;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: 1fr;
+  gap: 0px 0px;
+  grid-auto-flow: row;
+  grid-template-areas:
+    "view-selector-icon view-selector-text";
+}
+
+.view-selector-text { 
+  grid-area: view-selector-text; 
+  display: flex;
+  align-items: center;
+  padding-left: 1px;
+}
+
+.view-selector-icon { 
+  grid-area: view-selector-icon;     
+  font-size: 26px; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+
 .streamEditor {  
     display: grid;
     height: 100%;
@@ -236,7 +267,6 @@ async function fetchStreamData() {
 }
 
 .view-selector li {
-  padding: 8px 12px;
   margin-bottom: 6px;
   border-radius: 8px;
   cursor: pointer;
