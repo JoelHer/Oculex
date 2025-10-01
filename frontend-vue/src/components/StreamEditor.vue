@@ -188,10 +188,20 @@ async function fetchStreamData() {
 }
 
 .editorView { 
-    grid-area: editorView;
-    padding: 20px;
-    padding-left: 0px;
+  grid-area: editorView;
+  padding: 20px;
+  padding-left: 0px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  height: calc(100% - 40px);
+  scrollbar-width: none; /* Hide scrollbar for Firefox */
 }
+
+.editorView::-webkit-scrollbar {
+  display: none; /* Hide scrollbar for Chrome, Safari, and Opera */
+}
+
+
 
 .stream-thumbnail {
     margin: 15px;

@@ -349,7 +349,7 @@ async function saveChanges() {
 .section-title { font-size:1.5rem; font-weight:600; }
 
 /* layout similar to parser */
-.scheduling-layout { display:grid; grid-template-columns: 1fr 300px; gap:20px; align-items:start; }
+.scheduling-layout { display:grid; grid-template-columns: 1fr 0px; gap:20px; align-items:start; } /* Originally 1fr 300px. */
 .left-col { display:flex; flex-direction:column; gap:12px; }
 .right-col { /* empty placeholder */ }
 
