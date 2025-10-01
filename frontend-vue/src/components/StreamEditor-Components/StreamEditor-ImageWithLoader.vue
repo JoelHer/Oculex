@@ -32,16 +32,17 @@ watch(() => props.streamUrl, () => {
 </script>
 
 <template>
-  <div class="image-wrapper">
+  <div
+    class="image-wrapper"
+    :class="{ 'loading-ratio': loading }"
+  >
     <img
       :src="streamUrl"
       class="card-image"
       @load="onImageLoad"
       @error="onImageError"
     />
-
-    <div v-if="loading" class="spinner"></div>
-
+    <div v-if="loading" class="skeleton"></div>
     <div v-if="error" class="fallbackIconContainer">
       <Icon icon="mdi:image-off" class="fallbackIcon" />
     </div>
@@ -52,7 +53,6 @@ watch(() => props.streamUrl, () => {
 .image-wrapper {
   position: relative;
   width: 100%;
-  height: 100%;
   background-color: #23252C;
   border-radius: 15px;
   overflow: hidden;
@@ -66,22 +66,44 @@ watch(() => props.streamUrl, () => {
   border-radius: 15px;
 }
 
-.spinner {
-  position: absolute;
-  top: calc(50% - 18.5px);
-  left: 50%;
-  width: 30px;
-  height: 30px;
-  margin: -15px 0 0 -15px;
-  border: 4px solid #4a4d57;
-  border-top: 4px solid #40F284;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+.image-wrapper.loading-ratio {
+  aspect-ratio: 16 / 9; /* default ratio */
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.skeleton {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #2d3038; /* lighter than #23252c */
+  overflow: hidden;
+}
+
+.skeleton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(74, 77, 87, 0.3), /* soft bluish-gray shimmer */
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
 }
 
 .fallbackIconContainer {
