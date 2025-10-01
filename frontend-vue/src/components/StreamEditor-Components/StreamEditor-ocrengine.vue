@@ -267,18 +267,29 @@ async function runOCR() {
             <div class="output-meta">
               <div class="output-chip">
                 <div class="chip-label">Confidence</div>
-                <div class="chip-value">{{ confidence !== null ? (confidence.toFixed(1) + '%') : '—' }}</div>
+                <div class="chip-value">
+                  <div v-if="ocrStatus === 'loading'" class="skeleton skeleton-text"></div>
+                  <template v-else>
+                    {{ confidence !== null ? (confidence.toFixed(1) + '%') : '—' }}
+                  </template>
+                </div>
               </div>
 
               <div class="output-chip">
                 <div class="chip-label">Last Updated</div>
-                <div class="chip-value">{{ parseAgo }}</div>
+                <div class="chip-value">
+                  <div v-if="ocrStatus === 'loading'" class="skeleton skeleton-text"></div>
+                  <template v-else>
+                    {{ parseAgo }}
+                  </template>
+                </div>
               </div>
             </div>
 
             <label class="muted-label" style="margin-top:8px;">Parsed Text</label>
             <div class="output-panel" aria-live="polite" role="status">
-              <div class="output-text" v-if="parsedText && parsedText !== '—'">{{ parsedText }}</div>
+              <div v-if="ocrStatus === 'loading'" class="skeleton skeleton-block"></div>
+              <div class="output-text" v-else-if="parsedText && parsedText !== '—'">{{ parsedText }}</div>
               <div class="output-empty" v-else>— no parsed text —</div>
             </div>
           </div>
@@ -420,6 +431,46 @@ async function runOCR() {
   overflow:hidden;
   text-overflow:ellipsis;
 }
+
+.skeleton {
+  background: #2d3038;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(74, 77, 87, 0.3),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-text {
+  width: 80px;
+  height: 14px;
+}
+
+.skeleton-block {
+  width: 100%;
+  height: 64px; /* or match average text block size */
+  margin-top: 6px;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
 
 .ocr-root { display:flex; flex-direction:column; gap:16px; color:white; }
 .section-title { font-size:1.5rem; font-weight:600; }
