@@ -421,12 +421,43 @@ async function runOCR() {
   text-overflow:ellipsis;
 }
 
-.ocr-root { display:flex; flex-direction:column; gap:16px; color:white; }
+.ocr-root { 
+  display:flex; 
+  flex-direction:column; 
+  gap:16px; color:white; 
+}
 .section-title { font-size:1.5rem; font-weight:600; }
 
-.ocr-layout { display:grid; grid-template-columns: 1fr 320px; gap:20px; align-items:start; }
-.left-col { display:flex; flex-direction:column; gap:12px; }
-.right-col { display:flex; flex-direction:column; gap:12px; }
+.ocr-layout { 
+  display: flex; 
+  gap: 20px; 
+  align-items: start; 
+  flex-wrap: wrap;
+}
+.left-col { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 12px; 
+  flex: 1 1 500px;
+  min-width: 0;
+}
+.right-col { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 12px; 
+  flex: 0 1 320px;
+  min-width: 280px;
+}
+
+@media (max-width: 900px) {
+  .ocr-layout {
+    flex-direction: column;
+  }
+  .left-col, .right-col {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+}
 
 .stream-box {
   background: #23252c;
