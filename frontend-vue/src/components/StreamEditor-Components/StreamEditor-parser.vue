@@ -309,7 +309,6 @@ async function saveSettings() {
         <div style="position:relative;">
           <StreamEditorImageWithLoader 
             :streamUrl="`/snapshot/${encodeURIComponent(props.stream.name)}?cb=${imageKey}`"
-            @load="onImageLoad"
             @error="onImageError"
             class="stream-img"
             :key="imageKey"
