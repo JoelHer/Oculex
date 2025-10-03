@@ -217,7 +217,8 @@ function updateSelectionStyle() {
 }
 function addBox() {
   if (selection.style.display === 'block') {
-    const newId = Date.now()
+    // short integer, based on the Nth box added
+    const newId = boxes.value.length > 0 ? Math.max(...boxes.value.map(b => b.id)) + 1 : 1
     // Save true image pixel coordinates
     const x = Math.min(selection.startX, selection.endX)
     const y = Math.min(selection.startY, selection.endY)
