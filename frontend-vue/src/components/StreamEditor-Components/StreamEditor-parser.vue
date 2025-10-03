@@ -54,6 +54,7 @@ function saveImageSettings() {
     })
   }).then(() => {
     resetImageSettingsDirty()
+    reloadImage('both')
   })
 }
 
@@ -286,6 +287,8 @@ async function saveBoxes() {
       box_width: b.width,
       box_height: b.height
     })))
+  }).then(() => {
+    reloadImage('both')
   })
 }
 async function saveSettings() {
@@ -298,6 +301,8 @@ async function saveSettings() {
       crop_left: crop_left.value,
       crop_right: crop_right.value
     })
+  }).then(() => {
+    reloadImage('both')
   })
 }
 </script>
