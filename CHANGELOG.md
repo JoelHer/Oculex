@@ -2,7 +2,7 @@
 
 ## [0.1.22] - 3.10.2025
 ### Fixed
-- Fixed bug in scheduler, where it was not possible to save custom cron expressions.  ([???????](https://github.com/JoelHer/Oculex/commit/))
+- Fixed bug in scheduler, where it was not possible to save custom cron expressions.  ([be10649](https://github.com/JoelHer/Oculex/commit/be10649ab09b851ad815d745b0e9955a31f7badd))
 ## [0.1.21] - 3.10.2025
 ### UI
 - Improved responsiveness and added scrolling [#18](https://github.com/JoelHer/Oculex/issues/18) ([bbf3ca2](https://github.com/JoelHer/Oculex/commit/bbf3ca2039d3135f1d1dfe1167039b83083df116))
