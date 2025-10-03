@@ -54,6 +54,7 @@ function saveImageSettings() {
     })
   }).then(() => {
     resetImageSettingsDirty()
+    reloadImage('both')
   })
 }
 
@@ -216,7 +217,8 @@ function updateSelectionStyle() {
 }
 function addBox() {
   if (selection.style.display === 'block') {
-    const newId = Date.now()
+    // short integer, based on the Nth box added
+    const newId = boxes.value.length > 0 ? Math.max(...boxes.value.map(b => b.id)) + 1 : 1
     // Save true image pixel coordinates
     const x = Math.min(selection.startX, selection.endX)
     const y = Math.min(selection.startY, selection.endY)
@@ -286,6 +288,8 @@ async function saveBoxes() {
       box_width: b.width,
       box_height: b.height
     })))
+  }).then(() => {
+    reloadImage('both')
   })
 }
 async function saveSettings() {
@@ -298,6 +302,8 @@ async function saveSettings() {
       crop_left: crop_left.value,
       crop_right: crop_right.value
     })
+  }).then(() => {
+    reloadImage('both')
   })
 }
 </script>
