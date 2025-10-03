@@ -110,6 +110,7 @@ async function saveChanges() {
   flex-direction: column;
   gap: 20px;
   color: white;
+  padding: 0 16px;
 }
 
 .section-title {
@@ -155,8 +156,8 @@ input {
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  min-width: 140px; /* optional, to keep consistent width */
-  min-height: 42px; /* ensure consistent height */
+  min-width: 140px;
+  min-height: 42px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -197,12 +198,14 @@ input {
 .text {
   transition: opacity 0.2s ease;
 }
+
 .preview-grid {
   grid-area: preview-grid;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  width: 100%;
 }
 
 .preview-label {
@@ -210,6 +213,7 @@ input {
   font-weight: 700;
   margin-bottom: 8px;
 }
+
 .invisible {
   opacity: 0;
 }
@@ -223,9 +227,56 @@ input {
   display: grid; 
   grid-template-columns: 1fr 300px; 
   grid-template-rows: 1fr; 
-  gap: 0px 0px; 
+  gap: 0px 24px; 
   grid-template-areas: 
     "form-grid preview-grid"; 
 }
 
+/* Mobile responsive styles */
+@media (max-width: 900px) {
+  .source-view {
+    padding: 0 12px;
+    gap: 16px;
+  }
+
+  .seperator {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    gap: 24px 0;
+    grid-template-areas: 
+      "preview-grid"
+      "form-grid";
+  }
+
+  .preview-grid {
+    max-width: 100%;
+  }
+
+  .save-button {
+    width: 100%;
+    align-self: stretch;
+  }
+
+  input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 900px) {
+  .source-view {
+    gap: 12px;
+  }
+
+  .form-grid {
+    gap: 12px;
+  }
+
+  label {
+    font-size: 0.9rem;
+  }
+
+  .preview-label {
+    font-size: 1rem;
+  }
+}
 </style>
