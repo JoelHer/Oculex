@@ -158,7 +158,7 @@ async function saveChanges() {
     const payload = {
       execution_mode: executionMode.value,
       // prefer explicit numeric intervalMinutes
-      interval_minutes: (intervalPreset.value === 'custom') ? parseInt(intervalMinutes.value) : parseInt(intervalPreset.value),
+      interval_minutes: (intervalPreset.value === 'custom') ? "custom" : parseInt(intervalPreset.value),
       cron_expression: cronExpression.value,
       cache_enabled: cacheEnabled.value,
       cache_duration: parseInt(cacheDuration.value),
