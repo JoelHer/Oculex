@@ -292,5 +292,31 @@ async function fetchStreamData() {
   width: 100%;
 }
 
-
+@media (max-width: 750px) {
+  .streamEditor {
+    grid-template-columns: 103px 1fr;
+  }
+  .view-selector-text {
+    display: none;
+  }
+  .navbarContainer {
+    grid-template-rows: 0fr 1fr;
+  }
+  .titleContainer h1 {
+    display: none;
+  }
+  .nav-separator {
+    display: none;
+  }
+  .titleContainer {
+    justify-content: center;
+    height: 58px;
+  }
+  .back-button {
+    padding-left: 0px;
+  }
+  .navbarContainer-body {
+    padding: 10px 10px 10px;
+  }
+}
 </style>
