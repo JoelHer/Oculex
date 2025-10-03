@@ -889,4 +889,11 @@ input[type="range"] {
   font-size: 0.95rem;
   margin-top: 6px;
 }
+
+@media (max-width: 1100px) {
+  .parser-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 </style>
