@@ -1,6 +1,6 @@
 
 
-## [0.1.21] - TBR.10.2025
+## [0.1.21] - 3.10.2025
 ### UI
 - Improved responsiveness and added scrolling [#18](https://github.com/JoelHer/Oculex/issues/18) ([bbf3ca2](https://github.com/JoelHer/Oculex/commit/bbf3ca2039d3135f1d1dfe1167039b83083df116))
 - Added skeleton loading to images in the stream editor [#5](https://github.com/JoelHer/Oculex/issues/5) ([e0f034d](https://github.com/JoelHer/Oculex/commit/e0f034d2d04fcac261ee0e694d80ef1ca907d139))

@@ -135,15 +135,15 @@ async function fetchStreamData() {
 
 
 .streamEditor {  
-    display: grid;
-    height: 100%;
-    width: 100%;
-    grid-template-columns: 350px 1fr;
-    grid-template-rows: 1fr;
-    gap: 0px 0px;
-    grid-auto-flow: row;
-    grid-template-areas:
-        "editorNavbar editorView";
+  display: grid;
+  height: 100%;
+  width: 100%;
+  grid-template-columns: 350px 1fr;
+  grid-template-rows: 1fr;
+  gap: 0px 0px;
+  grid-auto-flow: row;
+  grid-template-areas:
+      "editorNavbar editorView";
 }
 
 .container {
@@ -187,20 +187,20 @@ async function fetchStreamData() {
 }
 
 .navbarContainer {
-    display: grid; 
-    grid-template-rows: auto 1fr; /* Let header row size dynamically */
-    grid-template-areas: 
-    "navbarContainer-header"
-    "navbarContainer-body"; 
+  display: grid; 
+  grid-template-rows: auto 1fr; /* Let header row size dynamically */
+  grid-template-areas: 
+  "navbarContainer-header"
+  "navbarContainer-body"; 
 }
 
 
 .navbarContainer-header {
-    grid-area: navbarContainer-header;
-    display: flex;
-    align-items: center;
-    width: 100%;
-    overflow: hidden;
+  grid-area: navbarContainer-header;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
 }
 
 .navbarContainer-body {
@@ -210,12 +210,12 @@ async function fetchStreamData() {
 }
 
 .navbarContainer-header h1 {
-    margin: 0px;
-    padding: 10px;
-    font-size: 1.1rem;
-    color: #fff;
-    font-weight: 500;
-    font-family: "Roboto",sans-serif;
+  margin: 0px;
+  padding: 10px;
+  font-size: 1.1rem;
+  color: #fff;
+  font-weight: 500;
+  font-family: "Roboto",sans-serif;
 }
 
 .editorView { 
@@ -235,29 +235,29 @@ async function fetchStreamData() {
 
 
 .stream-thumbnail {
-    margin: 15px;
-    border-radius: 10px;
-    width: 80px;
-    height: 80px;
+  margin: 15px;
+  border-radius: 10px;
+  width: 80px;
+  height: 80px;
 }
 
 .stream-title {
-    overflow-x: hidden;
-    text-overflow: ellipsis;
-    width: calc(100% - 20px);
-    text-wrap: nowrap;
-    padding: 0px;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  width: calc(100% - 20px);
+  text-wrap: nowrap;
+  padding: 0px;
 }
 
 .stream-title-description {
-    overflow-x: hidden;
-    margin: 0px;
-    text-overflow: ellipsis;
-    width: calc(100% - 20px);
-    text-wrap: nowrap;
-    padding: 0px;
-    color: #797979;
-    font-size: 0.9rem;
+  overflow-x: hidden;
+  margin: 0px;
+  text-overflow: ellipsis;
+  width: calc(100% - 20px);
+  text-wrap: nowrap;
+  padding: 0px;
+  color: #797979;
+  font-size: 0.9rem;
 }
 
 .view-selector {
@@ -292,5 +292,31 @@ async function fetchStreamData() {
   width: 100%;
 }
 
-
+@media (max-width: 750px) {
+  .streamEditor {
+    grid-template-columns: 103px 1fr;
+  }
+  .view-selector-text {
+    display: none;
+  }
+  .navbarContainer {
+    grid-template-rows: 0fr 1fr;
+  }
+  .titleContainer h1 {
+    display: none;
+  }
+  .nav-separator {
+    display: none;
+  }
+  .titleContainer {
+    justify-content: center;
+    height: 58px;
+  }
+  .back-button {
+    padding-left: 0px;
+  }
+  .navbarContainer-body {
+    padding: 10px 10px 10px;
+  }
+}
 </style>
