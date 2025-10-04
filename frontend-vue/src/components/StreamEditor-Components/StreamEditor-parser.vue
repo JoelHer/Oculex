@@ -311,97 +311,106 @@ async function saveSettings() {
   <div class="parser-settings">
     <h2 class="section-title">Parser Settings</h2>
     <div class="parser-grid">
-      <div class="stream-box">
-        <div style="position:relative;">
-          <StreamEditorImageWithLoader 
-            :streamUrl="`/snapshot/${encodeURIComponent(props.stream.name)}?cb=${imageKey}`"
-            @error="onImageError"
-            class="stream-img"
-            :key="imageKey"
-          />
-          <button class="preview-upper-navbar-right" style="position:absolute;top:10px;right:10px;z-index:2;" @click="reloadImage('preview')">
-            <span class="material-icons">refresh</span>
-          </button>
-        </div>
-        <div class="region-section">
-          <button class="edit-regions-button" @click="openRegionOverlay">Edit Regions</button>
-
-        </div>
-
-        <div class="image-settings">
-
-            <div class="slider-row">
-              <label>Brightness</label>
-              <input type="range" v-model="brightness" min="-100" max="100" />
-              <span class="slider-value">{{ brightness }}</span>
-            </div>
-            <div class="slider-row">
-              <label>Contrast (must not be 0)</label>
-              <input type="range" v-model="contrast" min="-5" max="5" />
-              <span class="slider-value">{{ contrast }}</span>
-            </div>
-            <div class="slider-row">
-              <label>Rotation</label>
-              <input type="range" v-model="rotation" min="0" max="360" />
-              <span class="slider-value">{{ rotation }}</span>
-            </div>
-            <button
-              :class="['image-settings-save-btn', { dirty: imageSettingsDirty }]"
-              @click="saveImageSettings"
-              :disabled="!imageSettingsDirty"
-              style="margin-top:12px;"
-            >
-              <span v-if="imageSettingsDirty">Save (Unsaved)</span>
-              <span v-else>Saved</span>
-            </button>
-        </div>
-      </div>
-      <div class="output-box">
-        <div class="converted">
+      <div class="stream-box category-box">
+        <h3 class="category-title">Regions & Settings</h3>
+        <div class="category-body">
           <div style="position:relative;">
             <StreamEditorImageWithLoader 
               :streamUrl="`/snapshot/${encodeURIComponent(props.stream.name)}?cb=${imageKey}`"
-              @load="onConvertedLoad"
-              @error="() => onImageError('converted')"
-              class="output-img"
+              @error="onImageError"
+              class="stream-img"
               :key="imageKey"
             />
             <button class="preview-upper-navbar-right" style="position:absolute;top:10px;right:10px;z-index:2;" @click="reloadImage('preview')">
               <span class="material-icons">refresh</span>
             </button>
           </div>
-          <div class="status-line">
-            <span>
-              <span class="status-dot" :class="convertedStatus"></span>
-              {{ convertedStatus === 'online' ? 'Successfully Converted' : 
-                convertedStatus === 'error' ? 'Failed to Load Converted Image' : 
-                'Loading Converted Image...' }}
-            </span>
-            <span class="timestamp">{{ timeAgo(convertedTimestamp) }}</span>
+          <div class="region-section">
+            <button class="edit-regions-button" @click="openRegionOverlay">Edit Regions</button>
+          </div>
+          <div class="image-settings">
+              <div class="slider-row">
+                <label>Brightness</label>
+                <input type="range" v-model="brightness" min="-100" max="100" />
+                <span class="slider-value">{{ brightness }}</span>
+              </div>
+              <div class="slider-row">
+                <label>Contrast (must not be 0)</label>
+                <input type="range" v-model="contrast" min="-5" max="5" />
+                <span class="slider-value">{{ contrast }}</span>
+              </div>
+              <div class="slider-row">
+                <label>Rotation</label>
+                <input type="range" v-model="rotation" min="0" max="360" />
+                <span class="slider-value">{{ rotation }}</span>
+              </div>
+              <button
+                :class="['image-settings-save-btn', { dirty: imageSettingsDirty }]"
+                @click="saveImageSettings"
+                :disabled="!imageSettingsDirty"
+                style="margin-top:12px;"
+              >
+                <span v-if="imageSettingsDirty">Save (Unsaved)</span>
+                <span v-else>Saved</span>
+              </button>
           </div>
         </div>
-
-        <div class="parsed">
-          <div style="position:relative;">
-            <StreamEditorImageWithLoader 
-              :streamUrl="`/computed/${encodeURIComponent(props.stream.name)}?cb=${imagePKey}`"
-              @load="onParsedLoad"
-              @error="() => onImageError('parsed')"
-              class="output-img"
-              :key="imagePKey"
-            />
-            <button class="preview-upper-navbar-right" style="position:absolute;top:10px;right:10px;z-index:2;" @click="reloadImage('processed')">
-              <span class="material-icons">refresh</span>
-            </button>
+      </div>
+      <div class="subgrid">
+        <div class="sg-top">
+          <div class="stream-box category-box">
+            <h3 class="category-title">Converted Preview</h3>
+            <div class="category-body">
+              <div style="position:relative;">
+                <StreamEditorImageWithLoader 
+                  :streamUrl="`/snapshot/${encodeURIComponent(props.stream.name)}?cb=${imageKey}`"
+                  @load="onConvertedLoad"
+                  @error="() => onImageError('converted')"
+                  class="output-img"
+                  :key="imageKey"
+                />
+                <button class="preview-upper-navbar-right" style="position:absolute;top:10px;right:10px;z-index:2;" @click="reloadImage('preview')">
+                  <span class="material-icons">refresh</span>
+                </button>
+              </div>
+              <div class="status-line">
+                <span>
+                  <span class="status-dot" :class="convertedStatus"></span>
+                  {{ convertedStatus === 'online' ? 'Successfully Converted' : 
+                    convertedStatus === 'error' ? 'Failed to Load Converted Image' : 
+                    'Loading Converted Image...' }}
+                </span>
+                <span class="timestamp">{{ timeAgo(convertedTimestamp) }}</span>
+              </div>
+            </div>
           </div>
-          <div class="status-line">
-            <span>
-              <span class="status-dot" :class="parsedStatus"></span>
-              {{ parsedStatus === 'online' ? 'Successfully Parsed' : 
-                parsedStatus === 'error' ? 'Failed to Parse Image' : 
-                'Parsing Image...' }}
-            </span>
-            <span class="timestamp">{{ timeAgo(parsedTimestamp) }}</span>
+        </div>
+        <div class="sg-bottom">
+          <div class="stream-box category-box" style="margin-top: 20px;">
+            <h3 class="category-title">Parsed Preview</h3>
+            <div class="category-body">
+              <div style="position:relative;">
+                <StreamEditorImageWithLoader 
+                  :streamUrl="`/computed/${encodeURIComponent(props.stream.name)}?cb=${imagePKey}`"
+                  @load="onParsedLoad"
+                  @error="() => onImageError('parsed')"
+                  class="output-img"
+                  :key="imagePKey"
+                />
+                <button class="preview-upper-navbar-right" style="position:absolute;top:10px;right:10px;z-index:2;" @click="reloadImage('processed')">
+                  <span class="material-icons">refresh</span>
+                </button>
+              </div>
+              <div class="status-line">
+                <span>
+                  <span class="status-dot" :class="parsedStatus"></span>
+                  {{ parsedStatus === 'online' ? 'Successfully Parsed' : 
+                    parsedStatus === 'error' ? 'Failed to Parse Image' : 
+                    'Parsing Image...' }}
+                </span>
+                <span class="timestamp">{{ timeAgo(parsedTimestamp) }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -573,21 +582,12 @@ async function saveSettings() {
   gap: 20px;
 }
 
-.stream-box {
-  background: #23252c;
-  padding: 16px;
-  border-radius: 15px;
-  border: 2px solid #2d2f37;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .output-box {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
+
 
 .converted, .parsed {
   background: #23252c;
@@ -901,5 +901,16 @@ input[type="range"] {
     grid-template-columns: 1fr;
   }
 }
-
+.stream-box {
+  background: #23252c;
+  padding: 14px;
+  border-radius: 15px;
+  border: 2px solid #2d2f37;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.category-box { padding: 12px 14px; }
+.category-title { color:#40F284; font-size:1.05rem; margin:0; font-weight:700; }
+.category-body { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
 </style>
