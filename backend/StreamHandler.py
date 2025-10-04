@@ -149,9 +149,10 @@ class StreamHandler:
                 and not bustCache
             ):
                 current_time = time.time()
-                if current_time - self.lastFrameTimestamp < 60: # CACHE 60 SECONDS
-                    print(f"[StreamHandler] Returning cached frame for {url}")
-                    return self.lastFrame
+                # COMMENTED OUT FOR NOW BECAUSE OF ISSUES
+                #if current_time - self.lastFrameTimestamp < 60: # CACHE 60 SECONDS
+                #    print(f"[StreamHandler] Returning cached frame for {url}, age: {current_time - self.lastFrameTimestamp:.2f} seconds")
+                #    return self.lastFrame
 
             frame_data = None
 
