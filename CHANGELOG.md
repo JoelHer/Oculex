@@ -1,7 +1,8 @@
-## [0.1.23] - TBR.10.2025
+## [0.1.23] - 4.10.2025
 ### Changed
 - Images automatically refresh when setting has been saved in the parser. [#23](https://github.com/JoelHer/Oculex/issues/23) ([6bd9d8b](https://github.com/JoelHer/Oculex/commit/6bd9d8b87f1aa1913d2ce7c1d47a07397166b7a4))
 - Box IDs are now based on total number of boxes ([03e64b6](https://github.com/JoelHer/Oculex/commit/03e64b6ce4b234b428ec542cfed001be2973cc97))
+- Disabled frame grabbing caching for now, due to bug ([2fc46f8](https://github.com/JoelHer/Oculex/commit/2fc46f8dabb98be01d6210136a3ba5513cc6888f))
 
 ## [0.1.22] - 3.10.2025
 ### Fixed
