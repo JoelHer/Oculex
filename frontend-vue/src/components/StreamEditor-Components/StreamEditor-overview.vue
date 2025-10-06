@@ -100,9 +100,9 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-body">
-          <h3>Stream Information</h3>
+      <div class="stream-box category-box">
+        <h3 class="category-title">Stream Information</h3>
+        <div class="category-body">
           <p><strong>Name:</strong> {{ props.stream.name }}</p>
           <p><strong>Snapshot Status:</strong> {{ snapshotStatus }}</p>
           <p><strong>Computed Status:</strong> {{ computedStatus }}</p>
@@ -132,6 +132,23 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
+}
+
+.stream-box {
+  background: #23252c;
+  padding: 14px;
+  border-radius: 15px;
+  border: 2px solid #2d2f37;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.category-box { padding: 12px 14px; }
+.category-title { color:#40F284; font-size:1.05rem; margin:0; font-weight:700; }
+.category-body { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+
+.category-box p {
+  margin: 0px;
 }
 
 .card {
