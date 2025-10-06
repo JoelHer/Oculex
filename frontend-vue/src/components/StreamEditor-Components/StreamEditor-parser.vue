@@ -21,6 +21,8 @@ const contrast = ref(0)
 const saturation = ref(0)
 const rotation = ref(0)
 
+const saving = ref(false)
+
 // --- Dirty form state for image settings ---
 const imageSettingsInitial = reactive({
   brightness: 100,
@@ -42,20 +44,27 @@ function resetImageSettingsDirty() {
   imageSettingsInitial.rotation = rotation.value
 }
 
-function saveImageSettings() {
-  fetch(`/set_settings/${props.stream.name}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      brightness: parseFloat(brightness.value),
-      contrast: parseFloat(contrast.value),
-      saturation: parseFloat(saturation.value),
-      rotation: parseFloat(rotation.value)
+async function saveImageSettings() {
+  saving.value = true
+  try {
+    const res = await fetch(`/set_settings/${props.stream.name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        brightness: parseFloat(brightness.value),
+        contrast: parseFloat(contrast.value),
+        saturation: parseFloat(saturation.value),
+        rotation: parseFloat(rotation.value)
+      })
     })
-  }).then(() => {
+    if (!res.ok) throw new Error('Failed to save')
     resetImageSettingsDirty()
     reloadImage('both')
-  })
+  } catch (e) {
+    // keep dirty state if error
+  } finally {
+    saving.value = false
+  }
 }
 
 // Watch for changes to mark dirty
@@ -344,15 +353,26 @@ async function saveSettings() {
                 <input type="range" v-model="rotation" min="0" max="360" />
                 <span class="slider-value">{{ rotation }}</span>
               </div>
-              <button
-                :class="['image-settings-save-btn', { dirty: imageSettingsDirty }]"
-                @click="saveImageSettings"
-                :disabled="!imageSettingsDirty"
-                style="margin-top:12px;"
-              >
-                <span v-if="imageSettingsDirty">Save (Unsaved)</span>
-                <span v-else>Saved</span>
-              </button>
+              <div style="margin-top:10px; display:flex; gap:12px; align-items:center;">
+                <button 
+                  class="save-button"
+                  @click="saveImageSettings"
+                  :disabled="!imageSettingsDirty || saving"
+                  :class="{ 'disabled': !imageSettingsDirty || saving }"
+                >
+                  <span class="button-content">
+                    <span class="spinner" v-if="saving"></span>
+                    <span class="text" :class="{ invisible: saving }">Save Changes</span>
+                  </span>
+                </button>
+
+                <template v-if="loading">
+                  <div class="skeleton skeleton-text"></div>
+                </template>
+                <template v-else>
+                  <div style="color:#aaa; font-size:0.95rem;">{{ imageSettingsDirty ? 'Unsaved changes' : 'Saved' }}</div>
+                </template>
+              </div>
           </div>
         </div>
       </div>
@@ -527,6 +547,28 @@ async function saveSettings() {
 </template>
 
 <style scoped>
+.spinner { position:absolute; width:16px; height:16px; border:3px solid black; border-top:3px solid transparent; border-radius:50%; animation:spin 0.8s linear infinite; }
+
+.save-button {
+  position: relative;
+  align-self: flex-start;
+  background-color: #40F284;
+  color: black;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 140px;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.save-button.disabled { background-color:#444; color:#999; cursor:not-allowed; }
+.save-button:disabled { pointer-events:none; }
+
 .parse-container {  display: grid;
   grid-template-columns: 326px 1fr;
   grid-template-rows: 1fr;

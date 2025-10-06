@@ -73,32 +73,37 @@ async function saveChanges() {
 <template>
   <div class="source-view">
     <h2 class="section-title">Edit Stream Source</h2>
-    <div class="seperator">
-      <div class="preview-grid">
-        <label class="preview-label">Preview</label>
-        <StreamPreview :streamid="editedName" :previewStreamSource="debouncedStreamSource" preview="true" />
-      </div>
-      <div class="form-grid">
-        <div class="form-field">
-          <label for="name">Stream Name</label>
-          <input id="name" v-model="editedName" disabled type="text" placeholder="Enter stream name" />
+    <div class="stream-box category-box">
+      <h3 class="category-title">Stream Settings</h3>
+      <div class="category-body">
+        <div class="seperator">
+          <div class="preview-grid">
+            <label class="preview-label">Preview</label>
+            <StreamPreview :streamid="editedName" :previewStreamSource="debouncedStreamSource" preview="true" />
+          </div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="name">Stream Name</label>
+              <input id="name" v-model="editedName" disabled type="text" placeholder="Enter stream name" />
+            </div>
+    
+            <div class="form-field">
+              <label for="rtsp">Source URL</label>
+              <input id="rtsp" v-model="editedRtspUrl" type="text" placeholder="rtsp://..." />
+            </div>
+            <button 
+              class="save-button" 
+              @click="saveChanges"
+              :disabled="!isDirty || saving"
+              :class="{ 'disabled': !isDirty || saving }"
+            >
+              <span class="button-content">
+                <span class="spinner" v-if="saving"></span>
+                <span class="text" :class="{ invisible: saving }">Save Changes</span>
+              </span>
+            </button>
+          </div>
         </div>
-
-        <div class="form-field">
-          <label for="rtsp">Source URL</label>
-          <input id="rtsp" v-model="editedRtspUrl" type="text" placeholder="rtsp://..." />
-        </div>
-        <button 
-          class="save-button" 
-          @click="saveChanges"
-          :disabled="!isDirty || saving"
-          :class="{ 'disabled': !isDirty || saving }"
-        >
-          <span class="button-content">
-            <span class="spinner" v-if="saving"></span>
-            <span class="text" :class="{ invisible: saving }">Save Changes</span>
-          </span>
-        </button>
       </div>
     </div>
   </div>
@@ -163,6 +168,19 @@ input {
   justify-content: center;
   overflow: hidden;
 }
+
+.stream-box {
+  background: #23252c;
+  padding: 14px;
+  border-radius: 15px;
+  border: 2px solid #2d2f37;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.category-box { padding: 12px 14px; }
+.category-title { color:#40F284; font-size:1.05rem; margin:0; font-weight:700; }
+.category-body { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
 
 .save-button:hover {
   background-color: #36c96c;
