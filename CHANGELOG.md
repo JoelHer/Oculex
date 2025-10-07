@@ -1,3 +1,7 @@
+## [0.1.24] - 7.10.2025
+### Changed
+- Updated the rest of the UI to the new UI Standard. [#13](https://github.com/JoelHer/Oculex/issues/13) ([0f22011](https://github.com/JoelHer/Oculex/commit/0f22011e6feb064541d4d233ddf5d73726e85229))
+
 ## [0.1.23] - 4.10.2025
 ### Changed
 - Images automatically refresh when setting has been saved in the parser. [#23](https://github.com/JoelHer/Oculex/issues/23) ([6bd9d8b](https://github.com/JoelHer/Oculex/commit/6bd9d8b87f1aa1913d2ce7c1d47a07397166b7a4))
