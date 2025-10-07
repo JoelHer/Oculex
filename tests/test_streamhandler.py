@@ -8,7 +8,8 @@ from backend.StreamHandler import StreamHandler
 class TestDeltaTracking(unittest.TestCase):
     def setUp(self):
         # Create a fake StreamHandler with a mocked getOcrResult
-        self.handler = StreamHandler("test", "rtsp://example.com/stream", {}, {}, {}, None)
+        self.logger = MagicMock()
+        self.handler = StreamHandler(self.logger,"test", "rtsp://example.com/stream", {}, {}, {}, None)
         self.handler.getOcrResult = MagicMock()
 
     @patch("time.time", return_value=200.0)

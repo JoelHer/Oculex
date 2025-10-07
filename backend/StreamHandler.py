@@ -80,12 +80,12 @@ CACHE_DIR = "/data/cache"
 class StreamHandler:
     async def routine(self):
         """Routine to handle stream processing."""
-        print(f"[StreamHandler] Starting routine for stream {self.id}")
+        self.logger.info(self.id, f"Starting routine for stream {self.id}", method_name="[StreamHandler.routine]")
         while True:
             try:
                 frame = await self.grab_frame_raw()
                 if frame is None:
-                    print(f"[StreamHandler] No frame received for stream {self.id}, updating status to NO_STREAM")
+                    self.logger.info(self.id, f"[StreamHandler] No frame received for stream {self.id}, updating status to NO_STREAM")
                     await self.update_status(StreamStatus.NO_STREAM)
                     await asyncio.sleep(30)
                     continue
@@ -94,7 +94,7 @@ class StreamHandler:
                 self.lastFrameTimestamp = time.time()
 
             except Exception as e:
-                print(f"[StreamHandler] Error in routine for stream {self.id}: {e}")
+                self.logger.info(self.id, f"[StreamHandler] Error in routine for stream {self.id}: {e}")
                 await self.update_status(StreamStatus.ERROR)
                 break
 
@@ -103,7 +103,7 @@ class StreamHandler:
     def OCR_value_changed(old, new):
         print(f"[StreamHandler] OCR running state changed from {old} to {new}")
 
-    def __init__(self, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=None, schedulingSettings=None):
+    def __init__(self, exec_logger, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=None, schedulingSettings=None):
         self.id = stream_id
         self.rtsp_url = rtsp_url
         self.config = config
@@ -119,6 +119,7 @@ class StreamHandler:
         self.last_ocr_results = None
         self.last_ocr_timestamp = 0
         self.scheduler = None
+        self.logger = exec_logger
         if schedulingSettings:
             self.schedulingSettings = schedulingSettings
         else:
@@ -151,7 +152,7 @@ class StreamHandler:
                 current_time = time.time()
                 # COMMENTED OUT FOR NOW BECAUSE OF ISSUES
                 #if current_time - self.lastFrameTimestamp < 60: # CACHE 60 SECONDS
-                #    print(f"[StreamHandler] Returning cached frame for {url}, age: {current_time - self.lastFrameTimestamp:.2f} seconds")
+                #    self.logger.info(self.id, f"[StreamHandler] Returning cached frame for {url}, age: {current_time - self.lastFrameTimestamp:.2f} seconds")
                 #    return self.lastFrame
 
             frame_data = None
@@ -187,15 +188,15 @@ class StreamHandler:
 
     async def grab_frame_raw(self, generateThumbnail=True):
 
-        print(f"[StreamHandler, grab_frame_raw] Trying to open the RTSP stream at {self.rtsp_url}")
+        self.logger.info(self.id, f"[StreamHandler, grab_frame_raw] Trying to open the RTSP stream at {self.rtsp_url}")
         
         if self.rtsp_url.startswith("file://"):
             file_path = self.rtsp_url[7:]
-            print(f"[StreamHandler] Opening file {file_path} instead of RTSP stream")
+            self.logger.info(self.id, f"[StreamHandler] Opening file {file_path} instead of RTSP stream")
             
             # Ensure processingSettings has default values if empty
             if not self.processingSettings or len(self.processingSettings) == 0:
-                print("[StreamHandler, grab_frame_raw] No processing settings found, using default values")
+                self.logger.info(self.id, "[StreamHandler, grab_frame_raw] No processing settings found, using default values")
                 self.processingSettings = {
                     "rotation": 0,
                     "contrast": 1.0,
@@ -240,17 +241,17 @@ class StreamHandler:
                         cv2.imwrite(cache_path, resized_image)
                         success, tBuffer = cv2.imencode(".jpg", resized_image)
                         if not success:
-                            print("[StreamHandler] Failed to encode thumbnail JPEG")
+                            self.logger.info(self.id, "[StreamHandler] Failed to encode thumbnail JPEG")
                             await self.update_status(StreamStatus.ERROR)
                     return buffer.tobytes()
                 else:
                     await self.update_status(StreamStatus.NO_STREAM)
-                    print(f"[StreamHandler] No frames found in the file {file_path}")
+                    self.logger.info(self.id, f"[StreamHandler] No frames found in the file {file_path}")
                     return None
 
             except Exception as e:
                 await self.update_status(StreamStatus.ERROR)
-                print(f"[StreamHandler] Error opening file {file_path}: {e}")
+                self.logger.info(self.id, f"[StreamHandler] Error opening file {file_path}: {e}")
                 return None
 
         else:
@@ -282,17 +283,17 @@ class StreamHandler:
                         cv2.imwrite(cache_path, resized_image)
                         success, tBuffer = cv2.imencode(".jpg", resized_image)
                         if not success:
-                            print("[StreamHandler] Failed to encode thumbnail JPEG")
+                            self.logger.info(self.id, "[StreamHandler] Failed to encode thumbnail JPEG")
                             await self.update_status(StreamStatus.ERROR)
                     return buffer.tobytes()
                 else:
                     await self.update_status(StreamStatus.NO_STREAM)
-                    print(f"[StreamHandler] No frames found in the RTSP stream at {self.rtsp_url}")
+                    self.logger.info(self.id, f"[StreamHandler] No frames found in the RTSP stream at {self.rtsp_url}")
                     return None
 
             except Exception as e:
                 await self.update_status(StreamStatus.ERROR)
-                print(f"[StreamHandler] Error opening RTSP stream with url {self.rtsp_url}: {e}")
+                self.logger.info(self.id, f"[StreamHandler] Error opening RTSP stream with url {self.rtsp_url}: {e}")
                 return None
 
     async def grab_frame(self, displayBoxes=True, displayOcrResults=False, ocrResults=None, color=(0, 255, 0)):
@@ -309,12 +310,12 @@ class StreamHandler:
 
             if frame is None:
                 await self.update_status(StreamStatus.NO_STREAM)
-                print(f"[StreamHandler] No frames found at {self.rtsp_url}")
+                self.logger.info(self.id, f"[StreamHandler] No frames found at {self.rtsp_url}")
                 return None
             frame = ensure_ndarray(frame)
 
-            print(f"[StreamHandler, grab_frame] Trying to open the RTSP stream at {self.rtsp_url}")
-            print(f"[StreamHandler, grab_frame] Current processing settings: {self.processingSettings}")
+            self.logger.info(self.id, f"[StreamHandler, grab_frame] Trying to open the RTSP stream at {self.rtsp_url}")
+            self.logger.info(self.id, f"[StreamHandler, grab_frame] Current processing settings: {self.processingSettings}")
 
             if not self.processingSettings:
                 self.processingSettings = {
@@ -369,7 +370,7 @@ class StreamHandler:
 
         except Exception as e:
             await self.update_status(StreamStatus.NO_CONNECTION)
-            print(f"[StreamHandler] Error opening stream {self.rtsp_url}: {e}")
+            self.logger.info(self.id, f"[StreamHandler] Error opening stream {self.rtsp_url}: {e}")
             return None
 
 
@@ -419,10 +420,10 @@ class StreamHandler:
         if os.path.exists(cache_path):
             file_age_seconds = time.time() - os.path.getmtime(cache_path)
             if file_age_seconds > 3600:  # older than 1 hour
-                print(f"[StreamHandler] Thumbnail \"{self.id}.jpg\" is stale, deleting")
+                self.logger.info(self.id, f"[StreamHandler] Thumbnail \"{self.id}.jpg\" is stale, deleting")
                 os.remove(cache_path)
             else:
-                print(f"[StreamHandler] Thumbnail \"{self.id}.jpg\" already exists, loading from cache instead")
+                self.logger.info(self.id, f"[StreamHandler] Thumbnail \"{self.id}.jpg\" already exists, loading from cache instead")
                 thumbnail = cv2.imread(cache_path)
                 _, buffer = cv2.imencode(".jpg", thumbnail)
                 return buffer.tobytes()
@@ -441,7 +442,7 @@ class StreamHandler:
         cv2.imwrite(cache_path, resized_image)
         success, buffer = cv2.imencode(".jpg", resized_image)
         if not success:
-            print("[StreamHandler] Failed to encode thumbnail JPEG")
+            self.logger.info(self.id, "[StreamHandler] Failed to encode thumbnail JPEG")
             await self.update_status(StreamStatus.ERROR)
             return None
 
@@ -452,13 +453,13 @@ class StreamHandler:
         cache_path = os.path.join(CACHE_DIR, "thumbnails", f"{self.id}.jpg")
         if os.path.exists(cache_path):
             os.remove(cache_path)
-            print(f"[StreamHandler] Cache for stream {self.id} deleted.")
+            self.logger.info(self.id, f"[StreamHandler] Cache for stream {self.id} deleted.")
         else:
-            print(f"[StreamHandler] No cache found for stream {self.id}.")
+            self.logger.info(self.id, f"[StreamHandler] No cache found for stream {self.id}.")
 
     async def update_status(self, new_status):
         if self.status != new_status:
-            print(f"[StreamHandler] Stream {self.id} status changed: {self.status} -> {new_status}")
+            self.logger.info(self.id, f"[StreamHandler] Stream {self.id} status changed: {self.status} -> {new_status}")
             self.status = new_status
             if self.ws_manager:
                 await self.ws_manager.broadcast({
@@ -494,7 +495,7 @@ class StreamHandler:
         oldOcrData = self.getOcrResult()
 
         if oldOcrData.get("aggregate", {}).get("image-fingerprint") == image_fingerprint and not forceCacheBust:
-            print("[StreamHandler, run_ocr] Image fingerprint matches previous OCR run, skipping OCR")
+            self.logger.info(self.id, "[StreamHandler, run_ocr] Image fingerprint matches previous OCR run, skipping OCR")
             await self.update_status(StreamStatus.OK)
             return {
                 **oldOcrData,
@@ -533,7 +534,7 @@ class StreamHandler:
         engine = get_ocr_engine(engine_type, ocr_config)
 
         try:
-            print(f"[StreamHandler, run_ocr] Running OCR with engine: {engine.__class__.__name__}")
+            self.logger.info(self.id, f"[StreamHandler, run_ocr] Running OCR with engine: {engine.__class__.__name__}")
             results = await ocr_worker.submit(engine, snippets, ocr_config)
             await self.update_status(StreamStatus.OK)
         except Exception as e:
@@ -579,7 +580,7 @@ class StreamHandler:
             return frame_bytes
         except Exception as e:
             await self.update_status(StreamStatus.ERROR)
-            print(f"[StreamHandler] show_ocr_results error: {e}")
+            self.logger.info(self.id, f"[StreamHandler] show_ocr_results error: {e}")
             return None
 
     def storeOcrResult(self, _results, image_fingerprint="none"):
@@ -590,7 +591,7 @@ class StreamHandler:
             with open(filename, "r") as f:
                 data = json.load(f)
         except FileNotFoundError:
-            print(f"[StreamHandler, storeOcrResult] No previous OCR file found ({filename}). Starting fresh.")
+            self.logger.info(self.id, f"[StreamHandler, storeOcrResult] No previous OCR file found ({filename}). Starting fresh.")
 
         # Parse results
         result_text = "".join([str(r.get("text", "")) for r in _results])
@@ -625,24 +626,24 @@ class StreamHandler:
         if not self.schedulingSettings.get("allow_decreasing_values", False):
             old_val = self.getOcrResult().get("aggregate", {}).get("value", None)
             if old_val is not None and old_val > aggregate["value"]:
-                print(f"[StreamHandler, storeOcrResult, AD] Decreasing value not allowed for stream {self.id}: {aggregate}; reverting to old value {old_val}")
+                self.logger.info(self.id, f"[StreamHandler, storeOcrResult, AD] Decreasing value not allowed for stream {self.id}: {aggregate}; reverting to old value {old_val}")
                 return self.getOcrResult()
             else:
-                print(f"[StreamHandler, storeOcrResult, AD_a] Value accepted for stream {self.id}: {aggregate}; new value {aggregate['value']} >= old value {old_val if old_val is not None else 'N/A'}")
+                self.logger.info(self.id, f"[StreamHandler, storeOcrResult, AD_a] Value accepted for stream {self.id}: {aggregate}; new value {aggregate['value']} >= old value {old_val if old_val is not None else 'N/A'}")
 
         if self.schedulingSettings.get("delta_tracking", False):
             if delta_tracking_allows:
                 with open(filename, "w") as f:
                     json.dump(data, f, indent=2)
-                print(f"[StreamHandler, storeOcrResult, D] Stored OCR for stream {self.id}: {aggregate}")
+                self.logger.info(self.id, f"[StreamHandler, storeOcrResult, D] Stored OCR for stream {self.id}: {aggregate}")
             else:
-                print(f"[StreamHandler, storeOcrResult, D_b] Delta tracking blocked storing OCR for stream {self.id}: {aggregate}")
+                self.logger.info(self.id, f"[StreamHandler, storeOcrResult, D_b] Delta tracking blocked storing OCR for stream {self.id}: {aggregate}")
                 #return last stored value
                 return self.getOcrResult()
         else:
             with open(filename, "w") as f:
                 json.dump(data, f, indent=2)
-            print(f"[StreamHandler, storeOcrResult, n_D] Stored OCR for stream {self.id}: {aggregate}")
+            self.logger.info(self.id, f"[StreamHandler, storeOcrResult, n_D] Stored OCR for stream {self.id}: {aggregate}")
 
 
         self.last_ocr_results = _results
@@ -659,10 +660,10 @@ class StreamHandler:
                 else:
                     return {"value": 0.0, "confidence": 0.0, "timestamp": 0}
         except FileNotFoundError:
-            print(f"[StreamHandler, getOcrResult] No OCR file found ({filename}).")
+            self.logger.info(self.id, f"[StreamHandler, getOcrResult] No OCR file found ({filename}).")
             return {"value": 0.0, "confidence": 0.0, "timestamp": 0}
         except json.JSONDecodeError:
-            print(f"[StreamHandler, getOcrResult] OCR file ({filename}) is corrupted.")
+            self.logger.info(self.id, f"[StreamHandler, getOcrResult] OCR file ({filename}) is corrupted.")
             return {"value": 0.0, "confidence": 0.0, "timestamp": 0}
 
     def process_frame(self):
@@ -712,7 +713,7 @@ class StreamHandler:
             self.schedulingSettings = {}
         self.schedulingSettings.update(settings)
 
-        print(f"[StreamHandler] Updated scheduling settings for stream {self.id}: {self.schedulingSettings}")
+        self.logger.info(self.id, f"[StreamHandler] Updated scheduling settings for stream {self.id}: {self.schedulingSettings}")
 
         if self.scheduler:
             self.scheduler.remove_job(self.id)
@@ -721,7 +722,7 @@ class StreamHandler:
                 # TODO: add cron expression validation and sanitization
                 self.scheduler.add_job(settings.get("cron_expression"), self.id)
         else:
-            print(f"[StreamHandler] No scheduler available to update jobs for stream {self.id}; THIS SHOULD NOT HAPPEN, WHAT DID YOU DO???")
+            self.logger.info(self.id, f"[StreamHandler] No scheduler available to update jobs for stream {self.id}; THIS SHOULD NOT HAPPEN, WHAT DID YOU DO???")
 
     def delta_tracking(self, new_value: float, increase: float, timespan_seconds: float) -> bool:
         """
