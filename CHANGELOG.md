@@ -1,4 +1,4 @@
-## [0.1.23] - 4.10.2025
+## [0.1.24] - 7.10.2025
 ### Changed
 - Updated the rest of the UI to the new UI Standard. [#13](https://github.com/JoelHer/Oculex/issues/13) ([0f22011](https://github.com/JoelHer/Oculex/commit/0f22011e6feb064541d4d233ddf5d73726e85229))
 
