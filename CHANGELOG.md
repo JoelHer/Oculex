@@ -1,3 +1,8 @@
+## [0.1.25] - 24.11.2025
+### Added
+- Added OCR execution logger, with auto refresh and debug level sorting [#16](https://github.com/JoelHer/Oculex/issues/16) ([0f22011](https://github.com/JoelHer/Oculex/commit/9a6d177bb0bd9789dc973a74c357977e33efa32c))
+ 
+
 ## [0.1.24] - 7.10.2025
 ### Changed
 - Updated the rest of the UI to the new UI Standard. [#13](https://github.com/JoelHer/Oculex/issues/13) ([0f22011](https://github.com/JoelHer/Oculex/commit/0f22011e6feb064541d4d233ddf5d73726e85229))
