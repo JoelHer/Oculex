@@ -261,3 +261,19 @@ def set_scheduling_settings(stream_id: str, settings: dict = Body(...)):
     stream.set_scheduling_settings(settings)
     streamManager.save_stream(stream)
     return JSONResponse(content=stream.get_scheduling_settings())
+
+@router.get("/{stream_id}/get-logs", response_class=JSONResponse)
+def get_stream_logs(
+    stream_id: str,
+    level: Optional[str] = Query(None, description="Filter logs by level (e.g., INFO, ERROR)"),
+    limit: int = 1000,
+):
+    """
+    Get logs for a specific stream.
+    """
+    stream = streamManager.get_stream(stream_id)
+    if not stream:
+        return JSONResponse(content={"error": "Stream not found"}, status_code=404)
+
+    logs = streamManager.execution_logger.get_logs(stream_id, limit=limit)
+    return JSONResponse(content={"logs": logs})

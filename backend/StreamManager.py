@@ -5,6 +5,7 @@
 
 
 from backend.StreamHandler import StreamHandler
+from backend.ExecutionLogger import ExecutionLogger
 import json
 
 class StreamManager:
@@ -18,6 +19,7 @@ class StreamManager:
         self.VERBOSE_LOGGING = verbose_logging
         self.store_location = "/data/streams.json"
         self._scheduler = None
+        self.execution_logger = ExecutionLogger(self)
 
     @property
     def scheduler(self):
@@ -31,7 +33,7 @@ class StreamManager:
                 stream.scheduler = self._scheduler
 
     def add_stream(self, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, schedulingSettings):
-        self.streams[stream_id] = StreamHandler(stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=self.ws_manager, schedulingSettings=schedulingSettings)
+        self.streams[stream_id] = StreamHandler(self.execution_logger, stream_id, rtsp_url, config, processingSettings, ocrSettings, selectionBoxes, ws_manager=self.ws_manager, schedulingSettings=schedulingSettings)
         if self._scheduler:
             self.streams[stream_id].scheduler = self._scheduler
 

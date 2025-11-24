@@ -6,7 +6,7 @@ import numpy as np
 class EasyOCREngine(OCREngine):
     def __init__(self, lang: str = "en", gpu: bool = False):
         # this loads models (expensive) - if you can reuse engines, do so
-        self.reader = easyocr.Reader([lang], gpu=gpu)
+        self.reader = easyocr.Reader([lang], gpu=gpu, verbose=False)
 
     def recognize_sync(self, images, config: dict):
         # images: list of numpy arrays
