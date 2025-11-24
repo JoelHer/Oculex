@@ -118,3 +118,51 @@ class ExecutionLogger:
         if method_name and not method_name.endswith(": "):
             method_name += ": "
         self._push(stream_id, "DEBUG", method_name + message)
+
+    def get_logs(self, stream_id, limit=1000):
+        """
+        Retrieve logs for a given stream_id sorted by timestamp (newest first).
+        limit caps the number of returned rows (default 1000, max 50000).
+        Returns a list of dicts: {id, stream_id, level, message, timestamp, iso}
+        """
+        self._validate_stream(stream_id)
+
+        try:
+            limit = int(limit)
+        except (TypeError, ValueError):
+            limit = 1000
+        if limit <= 0:
+            limit = 1000
+
+        MAX_LIMIT = 50000
+        if limit > MAX_LIMIT:
+            limit = MAX_LIMIT
+
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cur = conn.execute(
+                "SELECT id, stream_id, level, message, timestamp FROM logs WHERE stream_id = ? ORDER BY timestamp DESC LIMIT ?",
+                (stream_id, limit),
+            )
+            rows = cur.fetchall()
+        finally:
+            conn.close()
+
+        result = []
+        for r in rows:
+            ts = r["timestamp"]
+            iso = None
+            try:
+                iso = datetime.fromtimestamp(int(ts)).isoformat()
+            except Exception:
+                iso = None
+            result.append({
+                "id": r["id"],
+                "stream_id": r["stream_id"],
+                "level": r["level"],
+                "message": r["message"],
+                "timestamp": ts,
+                "iso": iso,
+            })
+        return result
