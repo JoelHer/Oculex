@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import Overview from './StreamEditor-Components/StreamEditor-overview.vue'
 import Ocrengine from './StreamEditor-Components/StreamEditor-ocrengine.vue'
+import Logs from './StreamEditor-Components/StreamEditor-logs.vue'
 import Source from './StreamEditor-Components/StreamEditor-source.vue'
 import Parser from './StreamEditor-Components/StreamEditor-parser.vue'
 import Scheduling from './StreamEditor-Components/StreamEditor-scheduling.vue'
@@ -18,6 +19,7 @@ const views = [
   { id: 'source',     label: 'Source', icon: 'mdi:cctv' },
   { id: 'parser',     label: 'Parser', icon: 'mdi:magnify-scan' },
   { id: 'ocrengine',  label: 'OCR Engine', icon: 'mdi:text-recognition' },
+  { id: 'logs',       label: 'Logs', icon: 'mdi:clipboard-text-clock-outline' },
   { id: 'scheduling',  label: 'Scheduling', icon: 'mdi:calendar-star-outline' },
 ]
 
@@ -100,6 +102,7 @@ async function fetchStreamData() {
       <Source      v-else-if="view === 'source'" :stream="props.stream" />
       <Parser      v-else-if="view === 'parser'" :stream="props.stream"/>
       <Ocrengine   v-else-if="view === 'ocrengine'" :stream="props.stream" />
+      <Logs       v-else-if="view === 'logs'" :stream="props.stream" />
       <Scheduling  v-else-if="view === 'scheduling'" :stream="props.stream" @save="$emit('save', $event)"/>
     </div>
   </div>
