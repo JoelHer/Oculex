@@ -111,7 +111,6 @@ function handleMessage(event) {
   try {
     const data = JSON.parse(event.data)
     if (data.type === 'logger/log' && data.stream_id === props.stream.name) {
-      console.log('Received log via websocket', data.message)
       logs.value.unshift({
         id: data.id,
         level: data.level,
