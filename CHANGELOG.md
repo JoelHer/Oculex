@@ -1,6 +1,13 @@
+## [0.1.26] - x.11.2025
+### Changed
+- Execution logger now broadcasts logs to the websocket [#16](https://github.com/JoelHer/Oculex/issues/16) ([7376a82](https://github.com/JoelHer/Oculex/commit/865d4de5e274244a6a5014ca4e7a390fc7376a82))
+### Fixed
+- StreamHandler logs to proper log levels now. [#16](https://github.com/JoelHer/Oculex/issues/16) ([72f7228](https://github.com/JoelHer/Oculex/commit/72f722830b84a2229adebf0f0ccb3d48e9d97b79))
+
+
 ## [0.1.25] - 24.11.2025
 ### Added
-- Added OCR execution logger, with auto refresh and debug level sorting [#16](https://github.com/JoelHer/Oculex/issues/16) ([0f22011](https://github.com/JoelHer/Oculex/commit/9a6d177bb0bd9789dc973a74c357977e33efa32c))
+- Added OCR execution logger, with auto refresh and debug level sorting [#16](https://github.com/JoelHer/Oculex/issues/16) ([9a6d177](https://github.com/JoelHer/Oculex/commit/9a6d177bb0bd9789dc973a74c357977e33efa32c))
  
 
 ## [0.1.24] - 7.10.2025
