@@ -94,7 +94,7 @@ class StreamHandler:
                 self.lastFrameTimestamp = time.time()
 
             except Exception as e:
-                self.logger.info(self.id, f"[StreamHandler] Error in routine for stream {self.id}: {e}")
+                self.logger.error(self.id, f"[StreamHandler] Error in routine for stream {self.id}: {e}")
                 await self.update_status(StreamStatus.ERROR)
                 break
 
@@ -192,11 +192,11 @@ class StreamHandler:
         
         if self.rtsp_url.startswith("file://"):
             file_path = self.rtsp_url[7:]
-            self.logger.info(self.id, f"[StreamHandler] Opening file {file_path} instead of RTSP stream")
+            self.logger.debug(self.id, f"[StreamHandler] Opening file {file_path} instead of RTSP stream")
             
             # Ensure processingSettings has default values if empty
             if not self.processingSettings or len(self.processingSettings) == 0:
-                self.logger.info(self.id, "[StreamHandler, grab_frame_raw] No processing settings found, using default values")
+                self.logger.debug(self.id, "[StreamHandler, grab_frame_raw] No processing settings found, using default values")
                 self.processingSettings = {
                     "rotation": 0,
                     "contrast": 1.0,
@@ -241,17 +241,17 @@ class StreamHandler:
                         cv2.imwrite(cache_path, resized_image)
                         success, tBuffer = cv2.imencode(".jpg", resized_image)
                         if not success:
-                            self.logger.info(self.id, "[StreamHandler] Failed to encode thumbnail JPEG")
+                            self.logger.error(self.id, "[StreamHandler] Failed to encode thumbnail JPEG")
                             await self.update_status(StreamStatus.ERROR)
                     return buffer.tobytes()
                 else:
                     await self.update_status(StreamStatus.NO_STREAM)
-                    self.logger.info(self.id, f"[StreamHandler] No frames found in the file {file_path}")
+                    self.logger.error(self.id, f"[StreamHandler] No frames found in the file {file_path}")
                     return None
 
             except Exception as e:
                 await self.update_status(StreamStatus.ERROR)
-                self.logger.info(self.id, f"[StreamHandler] Error opening file {file_path}: {e}")
+                self.logger.error(self.id, f"[StreamHandler] Error opening file {file_path}: {e}")
                 return None
 
         else:
@@ -283,17 +283,17 @@ class StreamHandler:
                         cv2.imwrite(cache_path, resized_image)
                         success, tBuffer = cv2.imencode(".jpg", resized_image)
                         if not success:
-                            self.logger.info(self.id, "[StreamHandler] Failed to encode thumbnail JPEG")
+                            self.logger.error(self.id, "[StreamHandler] Failed to encode thumbnail JPEG")
                             await self.update_status(StreamStatus.ERROR)
                     return buffer.tobytes()
                 else:
                     await self.update_status(StreamStatus.NO_STREAM)
-                    self.logger.info(self.id, f"[StreamHandler] No frames found in the RTSP stream at {self.rtsp_url}")
+                    self.logger.error(self.id, f"[StreamHandler] No frames found in the RTSP stream at {self.rtsp_url}")
                     return None
 
             except Exception as e:
                 await self.update_status(StreamStatus.ERROR)
-                self.logger.info(self.id, f"[StreamHandler] Error opening RTSP stream with url {self.rtsp_url}: {e}")
+                self.logger.error(self.id, f"[StreamHandler] Error opening RTSP stream with url {self.rtsp_url}: {e}")
                 return None
 
     async def grab_frame(self, displayBoxes=True, displayOcrResults=False, ocrResults=None, color=(0, 255, 0)):
@@ -315,7 +315,7 @@ class StreamHandler:
             frame = ensure_ndarray(frame)
 
             self.logger.info(self.id, f"[StreamHandler, grab_frame] Trying to open the RTSP stream at {self.rtsp_url}")
-            self.logger.info(self.id, f"[StreamHandler, grab_frame] Current processing settings: {self.processingSettings}")
+            self.logger.debug(self.id, f"[StreamHandler, grab_frame] Current processing settings: {self.processingSettings}")
 
             if not self.processingSettings:
                 self.processingSettings = {
@@ -370,7 +370,7 @@ class StreamHandler:
 
         except Exception as e:
             await self.update_status(StreamStatus.NO_CONNECTION)
-            self.logger.info(self.id, f"[StreamHandler] Error opening stream {self.rtsp_url}: {e}")
+            self.logger.error(self.id, f"[StreamHandler] Error opening stream {self.rtsp_url}: {e}")
             return None
 
 
@@ -420,10 +420,10 @@ class StreamHandler:
         if os.path.exists(cache_path):
             file_age_seconds = time.time() - os.path.getmtime(cache_path)
             if file_age_seconds > 3600:  # older than 1 hour
-                self.logger.info(self.id, f"[StreamHandler] Thumbnail \"{self.id}.jpg\" is stale, deleting")
+                self.logger.debug(self.id, f"[StreamHandler] Thumbnail \"{self.id}.jpg\" is stale, deleting")
                 os.remove(cache_path)
             else:
-                self.logger.info(self.id, f"[StreamHandler] Thumbnail \"{self.id}.jpg\" already exists, loading from cache instead")
+                self.logger.debug(self.id, f"[StreamHandler] Thumbnail \"{self.id}.jpg\" already exists, loading from cache instead")
                 thumbnail = cv2.imread(cache_path)
                 _, buffer = cv2.imencode(".jpg", thumbnail)
                 return buffer.tobytes()
@@ -442,7 +442,7 @@ class StreamHandler:
         cv2.imwrite(cache_path, resized_image)
         success, buffer = cv2.imencode(".jpg", resized_image)
         if not success:
-            self.logger.info(self.id, "[StreamHandler] Failed to encode thumbnail JPEG")
+            self.logger.error(self.id, "[StreamHandler] Failed to encode thumbnail JPEG")
             await self.update_status(StreamStatus.ERROR)
             return None
 
@@ -580,7 +580,7 @@ class StreamHandler:
             return frame_bytes
         except Exception as e:
             await self.update_status(StreamStatus.ERROR)
-            self.logger.info(self.id, f"[StreamHandler] show_ocr_results error: {e}")
+            self.logger.error(self.id, f"[StreamHandler] show_ocr_results error: {e}")
             return None
 
     def storeOcrResult(self, _results, image_fingerprint="none"):
@@ -663,7 +663,7 @@ class StreamHandler:
             self.logger.info(self.id, f"[StreamHandler, getOcrResult] No OCR file found ({filename}).")
             return {"value": 0.0, "confidence": 0.0, "timestamp": 0}
         except json.JSONDecodeError:
-            self.logger.info(self.id, f"[StreamHandler, getOcrResult] OCR file ({filename}) is corrupted.")
+            self.logger.error(self.id, f"[StreamHandler, getOcrResult] OCR file ({filename}) is corrupted.")
             return {"value": 0.0, "confidence": 0.0, "timestamp": 0}
 
     def process_frame(self):
@@ -722,7 +722,7 @@ class StreamHandler:
                 # TODO: add cron expression validation and sanitization
                 self.scheduler.add_job(settings.get("cron_expression"), self.id)
         else:
-            self.logger.info(self.id, f"[StreamHandler] No scheduler available to update jobs for stream {self.id}; THIS SHOULD NOT HAPPEN, WHAT DID YOU DO???")
+            self.logger.error(self.id, f"[StreamHandler] No scheduler available to update jobs for stream {self.id}; THIS SHOULD NOT HAPPEN, WHAT DID YOU DO???")
 
     def delta_tracking(self, new_value: float, increase: float, timespan_seconds: float) -> bool:
         """
