@@ -1,4 +1,4 @@
-## [0.1.26] - x.11.2025
+## [0.1.26] - TBR.11.2025
 ### Changed
 - Execution logger now broadcasts logs to the websocket [#16](https://github.com/JoelHer/Oculex/issues/16) ([7376a82](https://github.com/JoelHer/Oculex/commit/865d4de5e274244a6a5014ca4e7a390fc7376a82))
 ### Fixed
