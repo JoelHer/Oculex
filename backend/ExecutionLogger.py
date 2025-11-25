@@ -164,6 +164,18 @@ class ExecutionLogger:
         finally:
             conn.close()
 
+        conn2 = sqlite3.connect(self.db_path)
+        conn2.row_factory = sqlite3.Row
+        try:
+            cur = conn2.execute(
+                "SELECT count(*) FROM logs WHERE stream_id = ?",
+                (stream_id,), # DONT FORGET THE COMMA
+            )
+            rowsTotal = cur.fetchall()
+            print(" [ExecutionLogger] Total logs for stream", stream_id, ":", rowsTotal[0][0])
+        finally:
+            conn2.close()
+
         result = []
         for r in rows:
             ts = r["timestamp"]
@@ -180,4 +192,9 @@ class ExecutionLogger:
                 "timestamp": ts,
                 "iso": iso,
             })
-        return result
+        return {
+            "stream_id": stream_id,
+            "logs": result,
+            "total": rowsTotal[0][0],
+            "limit": limit
+        }

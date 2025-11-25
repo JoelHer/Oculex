@@ -14,6 +14,7 @@ const logs = ref([])
 const loading = ref(true)
 const error = ref(null)
 const filterLevel = ref('all') 
+const totalLogs = ref(0)
 const searchQuery = ref('')
 const refreshInterval = ref(null)
 
@@ -30,7 +31,8 @@ async function loadLogs() {
     }
     
     const data = await res.json()
-    logs.value = data.logs || []
+    logs.value = data.logs.logs || []
+    totalLogs.value = data.logs.total || 0
   } catch (e) {
     console.error('Failed loading logs', e)
     error.value = e.message
@@ -237,13 +239,13 @@ watch(() => props.stream.name, () => {
         <!-- Stats -->
         <div class="stats-row">
           <span class="stat">
-            Total: <strong>{{ logs.length }}</strong>
+            Total: <strong>{{ totalLogs }}</strong>
           </span>
           <span class="stat">
             Filtered: <strong>{{ filteredLogs.length }}</strong>
           </span>
           <span class="stat refresh-indicator">
-            🔄 Auto-refreshing
+            🔴 Live
           </span>
         </div>
       </div>
