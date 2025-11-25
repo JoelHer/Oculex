@@ -120,6 +120,8 @@ class StreamHandler:
         self.last_ocr_timestamp = 0
         self.scheduler = None
         self.logger = exec_logger
+
+        self.logger.ws_manager = ws_manager
         if schedulingSettings:
             self.schedulingSettings = schedulingSettings
         else:

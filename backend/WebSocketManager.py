@@ -1,7 +1,8 @@
 class WebSocketManager:
     def __init__(self):
         self.connections = set()
-
+        self.loop = None
+        
     async def register(self, websocket):
         self.connections.add(websocket)
         print("[WebSocketManager] New connection registered")
