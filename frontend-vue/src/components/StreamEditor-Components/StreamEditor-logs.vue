@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted, watch, computed, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed, onBeforeUnmount } from 'vue'
 import { EoesStream } from '../../models/EoesStream.js'
+import { useWebSocket } from '../../websocket'
 
 const props = defineProps({
   stream: {
@@ -13,15 +14,14 @@ const logs = ref([])
 const loading = ref(true)
 const error = ref(null)
 const filterLevel = ref('all') 
+const totalLogs = ref(0)
 const searchQuery = ref('')
-const autoRefresh = ref(false)
 const refreshInterval = ref(null)
 
+const { socket, connectionStatus, reconnect } = useWebSocket()
 
 async function loadLogs() {
-  if (!autoRefresh.value) {
-    loading.value = true
-  }
+  loading.value = true
   error.value = null
   
   try {
@@ -31,7 +31,8 @@ async function loadLogs() {
     }
     
     const data = await res.json()
-    logs.value = data.logs || []
+    logs.value = data.logs.logs || []
+    totalLogs.value = data.logs.total || 0
   } catch (e) {
     console.error('Failed loading logs', e)
     error.value = e.message
@@ -85,22 +86,6 @@ function formatTimestamp(log) {
   return '—'
 }
 
-// Toggle auto-refresh
-function toggleAutoRefresh() {
-  autoRefresh.value = !autoRefresh.value
-  
-  if (autoRefresh.value) {
-    refreshInterval.value = setInterval(() => {
-      loadLogs()
-    }, 5000)
-  } else {
-    if (refreshInterval.value) {
-      clearInterval(refreshInterval.value)
-      refreshInterval.value = null
-    }
-  }
-}
-
 async function clearLogs() {
   if (!confirm('Are you sure you want to clear all logs for this stream?')) {
     return
@@ -122,8 +107,34 @@ async function clearLogs() {
   }
 }
 
+function handleMessage(event) {
+  try {
+    const data = JSON.parse(event.data)
+    if (data.type === 'logger/log' && data.stream_id === props.stream.name) {
+      logs.value.unshift({
+        id: data.id,
+        level: data.level,
+        message: data.message,
+        iso: data.iso,
+        timestamp: data.timestamp
+      })
+    }
+  } catch (e) {
+    // ignore non-json or unexpected messages
+  }
+}
+
+
 onMounted(() => {
   loadLogs()
+
+  if (socket.value) {
+    const handler = (event) => handleMessage(event)
+    socket.value.addEventListener('message', handler)
+    onUnmounted(() => {
+      socket.value.removeEventListener('message', handler)
+    })
+  }
 })
 
 
@@ -174,14 +185,7 @@ watch(() => props.stream.name, () => {
               >
                 Refresh
               </button>
-              
-              <button 
-                class="control-button"
-                :class="{ active: autoRefresh }"
-                @click="toggleAutoRefresh"
-              >
-                {{ autoRefresh ? 'Auto ✓' : 'Auto' }}
-              </button>
+            
               
               <button 
                 class="control-button danger"
@@ -234,13 +238,13 @@ watch(() => props.stream.name, () => {
         <!-- Stats -->
         <div class="stats-row">
           <span class="stat">
-            Total: <strong>{{ logs.length }}</strong>
+            Total: <strong>{{ totalLogs }}</strong>
           </span>
           <span class="stat">
             Filtered: <strong>{{ filteredLogs.length }}</strong>
           </span>
-          <span v-if="autoRefresh" class="stat refresh-indicator">
-            🔄 Auto-refreshing
+          <span class="stat refresh-indicator">
+            🔴 Live
           </span>
         </div>
       </div>

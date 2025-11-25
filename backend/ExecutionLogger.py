@@ -3,12 +3,13 @@ import queue
 import threading
 from datetime import datetime
 import time as time_module
-
+import asyncio
 
 class ExecutionLogger:
-    def __init__(self, stream_manager, db_path="/data/logs.db"):
+    def __init__(self, stream_manager, db_path="/data/logs.db", ws_manager=None):
         self.stream_manager = stream_manager
         self.db_path = db_path
+        self.ws_manager = ws_manager
 
         self.queue = queue.Queue()
 
@@ -25,7 +26,7 @@ class ExecutionLogger:
             job = self.queue.get()  # blocks
 
             if job is None:
-                break  # optional shutdown support
+                break  
 
             stream_id, level, message = job
             timestamp = int(datetime.now().timestamp())
@@ -68,6 +69,20 @@ class ExecutionLogger:
 
             except sqlite3.Error as e:
                 print(f"[ERROR][ExecutionLogger] Worker DB error: {e}")
+
+            if self.ws_manager:
+                self.ws_manager.loop.call_soon_threadsafe(
+                    asyncio.create_task,
+                    self.ws_manager.broadcast({
+                        "type": "logger/log",
+                        "stream_id": stream_id,
+                        "message": message,
+                        "level": level,
+                        "timestamp": timestamp,
+                    })
+                )
+            else:
+                print(f"[WARN][ExecutionLogger] No WS manager to broadcast log.")
 
             self.queue.task_done()
 
@@ -149,6 +164,18 @@ class ExecutionLogger:
         finally:
             conn.close()
 
+        conn2 = sqlite3.connect(self.db_path)
+        conn2.row_factory = sqlite3.Row
+        try:
+            cur = conn2.execute(
+                "SELECT count(*) FROM logs WHERE stream_id = ?",
+                (stream_id,), # DONT FORGET THE COMMA
+            )
+            rowsTotal = cur.fetchall()
+            print(" [ExecutionLogger] Total logs for stream", stream_id, ":", rowsTotal[0][0])
+        finally:
+            conn2.close()
+
         result = []
         for r in rows:
             ts = r["timestamp"]
@@ -165,4 +192,9 @@ class ExecutionLogger:
                 "timestamp": ts,
                 "iso": iso,
             })
-        return result
+        return {
+            "stream_id": stream_id,
+            "logs": result,
+            "total": rowsTotal[0][0],
+            "limit": limit
+        }

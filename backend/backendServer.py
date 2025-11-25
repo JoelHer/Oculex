@@ -105,5 +105,5 @@ async def startup_event():
     # Start routines after FastAPI's event loop is running
     for handler in streamManager.streams.values():
         handler.start_routine()
-
+    ws_manager.loop = asyncio.get_running_loop()
     scheduler.start()
