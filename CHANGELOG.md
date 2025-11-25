@@ -1,4 +1,4 @@
-## [0.1.26] - TBR.11.2025
+## [0.1.26] - 26.11.2025
 ### Changed
 - Added real-time log updates via WebSocket [#16](https://github.com/JoelHer/Oculex/issues/16) ([713643c](https://github.com/JoelHer/Oculex/commit/713643ca6554c0a43bd986dbf9df096ec45f95ff))
 - Execution logger now broadcasts logs to the websocket [#16](https://github.com/JoelHer/Oculex/issues/16) ([7376a82](https://github.com/JoelHer/Oculex/commit/865d4de5e274244a6a5014ca4e7a390fc7376a82))
