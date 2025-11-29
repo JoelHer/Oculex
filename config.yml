@@ -15,17 +15,12 @@ options:
   liters_per_hour: 10
 schema:
   debug_mode: "bool"
-
-
 arch:
   - aarch64
   - amd64
   - armhf
   - armv7
   - i386
-
-
 ingress: false
-
 panel_admin: true
-webui: true
+
