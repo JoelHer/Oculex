@@ -28,4 +28,4 @@ arch:
 ingress: false
 
 panel_admin: true
-webui: http://[HOST]:[PORT:5000]/
+webui: true
