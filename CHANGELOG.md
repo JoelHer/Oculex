@@ -1,6 +1,15 @@
+## [0.1.26] - 26.11.2025
+### Changed
+- Added real-time log updates via WebSocket [#16](https://github.com/JoelHer/Oculex/issues/16) ([713643c](https://github.com/JoelHer/Oculex/commit/713643ca6554c0a43bd986dbf9df096ec45f95ff))
+- Execution logger now broadcasts logs to the websocket [#16](https://github.com/JoelHer/Oculex/issues/16) ([7376a82](https://github.com/JoelHer/Oculex/commit/865d4de5e274244a6a5014ca4e7a390fc7376a82))
+### Fixed
+- StreamHandler logs to proper log levels now. [#16](https://github.com/JoelHer/Oculex/issues/16) ([72f7228](https://github.com/JoelHer/Oculex/commit/72f722830b84a2229adebf0f0ccb3d48e9d97b79))
+### Removed 
+- Removed auto-refresh UI controls and related logic in the execution logger [#16](https://github.com/JoelHer/Oculex/issues/16) ([713643c](https://github.com/JoelHer/Oculex/commit/713643ca6554c0a43bd986dbf9df096ec45f95ff))
+
 ## [0.1.25] - 24.11.2025
 ### Added
-- Added OCR execution logger, with auto refresh and debug level sorting [#16](https://github.com/JoelHer/Oculex/issues/16) ([0f22011](https://github.com/JoelHer/Oculex/commit/9a6d177bb0bd9789dc973a74c357977e33efa32c))
+- Added OCR execution logger, with auto refresh and debug level sorting [#16](https://github.com/JoelHer/Oculex/issues/16) ([9a6d177](https://github.com/JoelHer/Oculex/commit/9a6d177bb0bd9789dc973a74c357977e33efa32c))
  
 
 ## [0.1.24] - 7.10.2025
