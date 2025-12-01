@@ -56,6 +56,7 @@ class ExecutionLogger:
                             WHERE rn > ?
                         )
                     """, (MAX_ENTRIES,))
+                    conn.commit()
 
                 except Exception as e:
                     print(f"[ExecutionLogger] DB error: {e}")
