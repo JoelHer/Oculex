@@ -8,12 +8,14 @@ from backend.StreamManager import StreamManager
 from backend.StreamHandler import StreamHandler
 from backend.WebSocketManager import WebSocketManager
 from backend.SchedulingManager import SchedulingManager
+from backend.DatabaseManager import DatabaseManager
 import json
 import sys
 import asyncio
 
 HttpServer = FastAPI()
 ws_manager = WebSocketManager()
+db_manager = DatabaseManager(db_path="/data/database/app.db", migrations_dir="./backend/DBMigrations")
 
 ws_connections = []
 @HttpServer.websocket("/ws/streamstatus")
@@ -36,8 +38,8 @@ async def notify_status_change(stream_id: str, new_status: str):
     for websocket in ws_connections:
         await websocket.send_json(message)
 
-streamManager = StreamManager(verbose_logging=True, ws_manager=ws_manager)
-previewStreamManager = StreamManager(verbose_logging=True, ws_manager=ws_manager)
+streamManager = StreamManager(verbose_logging=True, ws_manager=ws_manager, db_manager=db_manager)
+previewStreamManager = StreamManager(verbose_logging=True, ws_manager=ws_manager, db_manager=db_manager)
 #streamManager.add_stream("a", "rtsp://admin:herbstnvr@10.250.100.88:554/ch01.264", {"configValue": "12"}, settings, boxes)
 streamManager.load_streams("/data/streams.json")
 streamManager.store_streams("/data/streams.json")

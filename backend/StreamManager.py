@@ -13,13 +13,14 @@ class StreamManager:
     StreamManager
     Keeps track of all the active StreamHandler instances.
     """
-    def __init__(self, ws_manager=None, verbose_logging=False):
+    def __init__(self, ws_manager=None, verbose_logging=False, db_manager=None):
         self.streams = {}
         self.ws_manager = ws_manager
+        self.db_manager = db_manager
         self.VERBOSE_LOGGING = verbose_logging
         self.store_location = "/data/streams.json"
         self._scheduler = None
-        self.execution_logger = ExecutionLogger(self)
+        self.execution_logger = ExecutionLogger(self, db=self.db_manager, ws_manager=self.ws_manager)
 
     @property
     def scheduler(self):
