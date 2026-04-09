@@ -58,16 +58,8 @@ Oculex acts as a centralized node for OCR processing:
 | Configuration layer | Controls which streams, sampling rate, thresholds, OCR engine etc. |
 | Deployment | Docker / container setup, optionally local or cloud deployment. |
 
-Possible technologies:
-
-- Programming Language: Python (or other)  
-- OCR engines: Tesseract, EasyOCR, etc.
-- API for output  
-- RTSP support via ffmpeg / OpenCV  
-- Docker for packaging  
-
 ---
 
 ## Installation
 
-To be written.
+As this project is still in early alpha, there are no installation steps yet. However, you can open an issue and I will help you get this set up :)
