@@ -1,3 +1,4 @@
+[![Builds & Tests](https://github.com/JoelHer/Oculex/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JoelHer/Oculex/actions/workflows/ci.yml)
 # Oculex OCR
 
 _Oculex_ (formerly *EOES*) is an OCR Stream Aggregator. It ingests video streams (e.g. RTSP), extracts text via OCR, and provides unified output. Designed to integrate nicely with Home Assistant for automations, monitoring, and logging.
