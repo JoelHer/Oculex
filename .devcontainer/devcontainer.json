@@ -7,6 +7,7 @@
     "source=${localWorkspaceFolder}/frontend/static,target=/usr/share/hassio/addons/local/your_addon/frontend/static,type=bind",
     "source=${localWorkspaceFolder}/backend,target=/usr/src/app/backend,type=bind" 
   ],
+  "postCreateCommand": "npm ci --prefix frontend-vue",
   "customizations": {
     "vscode": {
       "extensions": [
