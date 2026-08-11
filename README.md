@@ -60,6 +60,13 @@ Oculex acts as a centralized node for OCR processing:
 
 ---
 
+## Dev Setup
+
+1. Open and clone the project in vs-code.
+2. Create a folder in the repository named "dev_data"
+3. Open the devcontainer
+4. Press `ctrl+shift+p` and `Tasks: Run Task` > `Backend & Frontend` 
+
 ## Installation
 
 As this project is still in early alpha, there are no installation steps yet. However, you can open an issue and I will help you get this set up :)
