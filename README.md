@@ -1,3 +1,4 @@
+[![Builds & Tests](https://github.com/JoelHer/Oculex/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JoelHer/Oculex/actions/workflows/ci.yml)
 # Oculex OCR
 
 _Oculex_ (formerly *EOES*) is an OCR Stream Aggregator. It ingests video streams (e.g. RTSP), extracts text via OCR, and provides unified output. Designed to integrate nicely with Home Assistant for automations, monitoring, and logging.
@@ -59,6 +60,13 @@ Oculex acts as a centralized node for OCR processing:
 | Deployment | Docker / container setup, optionally local or cloud deployment. |
 
 ---
+
+## Dev Setup
+
+1. Open and clone the project in vs-code.
+2. Create a folder in the repository named "dev_data"
+3. Open the devcontainer
+4. Press `ctrl+shift+p` and `Tasks: Run Task` > `Backend & Frontend` 
 
 ## Installation
 
